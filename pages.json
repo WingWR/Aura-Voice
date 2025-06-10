@@ -1,0 +1,57 @@
+{
+	"pages": [
+		{
+			"path": "pages/tabbar/voice/voice",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/tabbar/manage/manage",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/tabbar/setting/setting",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#000000",
+		"selectedColor": "#48d1cc",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/tabbar/voice/voice",
+				"iconPath": "/static/icons/Voice.svg",
+				"selectedIconPath": "/static/icons/Voice-Select.svg",
+				"text": "语音识别"
+			},
+			{
+				"pagePath": "pages/tabbar/manage/manage",
+				"iconPath": "/static/icons/Device.svg",
+				"selectedIconPath": "/static/icons/Device-Select.svg",
+				"text": "设备管理"
+			},
+			{
+				"pagePath": "pages/tabbar/setting/setting",
+				"iconPath": "/static/icons/Set.svg",
+				"selectedIconPath": "/static/icons/Set-Select.svg",
+				"text": "用户设置"
+			}
+		]
+	}
+}
