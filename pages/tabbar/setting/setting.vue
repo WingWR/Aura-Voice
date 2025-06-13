@@ -1,5 +1,7 @@
 <template>
   <scroll-view scroll-y class="page">
+	<TopBar />
+	  
     <!-- 第一组：账户 -->
     <view class="section">
       <view class="item">
@@ -47,6 +49,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import TopBar from '../../../components/topBar.vue';
 
 const darkMode = ref(false)
 
@@ -75,7 +78,9 @@ function logout() {
 <style scoped>
 .page {
   background-color: #f5f5f5;
-  padding-top: 20rpx;
+	
+  padding-top: 100rpx;
+  height: calc(100vh - 100rpx);
 }
 
 .section {
