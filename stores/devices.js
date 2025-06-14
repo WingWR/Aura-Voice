@@ -11,9 +11,9 @@ const initialDevices = [
     roomId: 'living',
     active: true, 
     color: 'amber',
-    brightness: 80,
-    temperature: '自然',
-    brightnessLevel: 3, // 1-3级亮度
+    brightnessLevel: 3,
+    colorHex: '#fbbf24',
+    online: true,
     lastUpdated: new Date()
   },
   { 
@@ -24,26 +24,26 @@ const initialDevices = [
     roomId: 'bedroom',
     active: false, 
     color: 'amber',
-    brightness: 60,
-    temperature: '暖光',
-    brightnessLevel: 2, // 1-3级亮度
+    brightnessLevel: 2,
+    colorHex: '#fbbf24',
+    online: true,
     lastUpdated: new Date()
   },
   {
-    id: 9,
+    id: 3,
     name: '卧室氛围灯',
     type: 'light',
     room: '卧室',
     roomId: 'bedroom',
     active: false,
     color: 'purple',
-    brightness: 40,
-    temperature: '暖光',
-    brightnessLevel: 1, // 1-3级亮度
+    brightnessLevel: 1,
+    colorHex: '#a78bfa',
+    online: false,
     lastUpdated: new Date()
   },
   { 
-    id: 3, 
+    id: 4, 
     name: '空调', 
     type: 'ac',
     room: '客厅', 
@@ -52,10 +52,11 @@ const initialDevices = [
     color: 'blue',
     temperature: 25,
     mode: '制冷',
+    online: true,
     lastUpdated: new Date()
   },
   { 
-    id: 4, 
+    id: 5, 
     name: '电视', 
     type: 'tv',
     room: '客厅', 
@@ -64,10 +65,11 @@ const initialDevices = [
     color: 'purple',
     volume: 50,
     source: 'HDMI',
+    online: true,
     lastUpdated: new Date()
   },
   { 
-    id: 5, 
+    id: 6, 
     name: '风扇', 
     type: 'fan',
     room: '卧室', 
@@ -76,10 +78,11 @@ const initialDevices = [
     color: 'cyan',
     speed: 2,
     swing: '关闭',
+    online: true,
     lastUpdated: new Date()
   },
   { 
-    id: 6, 
+    id: 7, 
     name: '音响', 
     type: 'speaker',
     room: '客厅', 
@@ -88,6 +91,58 @@ const initialDevices = [
     color: 'pink',
     volume: 60,
     eq: '标准',
+    online: false,
+    lastUpdated: new Date()
+  },
+  { 
+    id: 8, 
+    name: '冰箱', 
+    type: 'fridge',
+    room: '厨房', 
+    roomId: 'kitchen',
+    active: true, 
+    color: 'green',
+    temperature: 4,
+    ecoMode: true,
+    online: true,
+    lastUpdated: new Date()
+  },
+  { 
+    id: 9, 
+    name: '洗衣机', 
+    type: 'washer',
+    room: '浴室', 
+    roomId: 'bathroom',
+    active: false, 
+    color: 'indigo',
+    mode: '标准',
+    duration: 60,
+    online: true,
+    lastUpdated: new Date()
+  },
+  { 
+    id: 10, 
+    name: '扫地机器人', 
+    type: 'robot',
+    room: '客厅', 
+    roomId: 'living',
+    active: false, 
+    color: 'blue',
+    battery: 80,
+    status: '待机',
+    online: true,
+    lastUpdated: new Date()
+  },
+  { 
+    id: 11, 
+    name: '加湿器', 
+    type: 'humidifier',
+    room: '卧室', 
+    roomId: 'bedroom',
+    active: true, 
+    color: 'cyan',
+    humidity: 45,
+    online: false,
     lastUpdated: new Date()
   }
 ]

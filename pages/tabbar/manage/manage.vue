@@ -116,8 +116,8 @@ onUnmounted(() => {
 /* 主容器 */
 .device-management-page {
   min-height: 100vh;
-  background: linear-gradient(to bottom, var(--color-gray-900), var(--color-gray-950));
-  color: var(--color-gray-100);
+  background: linear-gradient(to bottom, #e2e8f0 0%, #f1f5f9 50%, #f8fafc 100%);
+  color: #1e293b;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -135,7 +135,7 @@ onUnmounted(() => {
 }
 
 .noise-overlay--visible {
-  opacity: 0.015;
+  opacity: 0.02;
 }
 
 /* 主要内容区域 */
@@ -170,13 +170,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 200px;
+  color: #475569;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-gray-100);
-  border-top-color: transparent;
+  border: 3px solid #cbd5e1;
+  border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -188,8 +189,9 @@ onUnmounted(() => {
 }
 
 .error-message {
-  color: #ef4444;
+  color: #dc2626;
   margin-bottom: 1rem;
+  font-weight: 500;
 }
 
 .retry-button {
@@ -197,13 +199,15 @@ onUnmounted(() => {
   border: 1px solid var(--card-border);
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  color: var(--color-gray-100);
+  color: #374151;
   cursor: pointer;
   transition: all var(--transition-normal) var(--ease-out);
+  font-weight: 500;
 }
 
 .retry-button:hover {
-  background: var(--color-gray-800);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes spin {
@@ -231,14 +235,14 @@ onUnmounted(() => {
   --color-gray-900: #111827;
   --color-gray-950: #030712;
 
-  /* 应用主题色 */
-  --app-bg: var(--color-black);
-  --text-primary: var(--color-white);
+  /* 应用主题色 - 浅色主题 */
+  --app-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%);
+  --text-primary: #1e293b;
 
-  /* 卡片样式 */
-  --card-bg: rgba(255, 255, 255, 0.08);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  /* 卡片样式 - 增强对比度 */
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(255, 255, 255, 0.8);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
   --card-radius: 20px;
 
   /* 毛玻璃效果 */
@@ -265,7 +269,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--app-bg);
+  background: var(--app-bg);
   color: var(--text-primary);
   margin: 0;
   padding: 0;
@@ -284,7 +288,7 @@ body {
 
 .ios-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .ios-card:active {

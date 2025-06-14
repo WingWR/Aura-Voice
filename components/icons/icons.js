@@ -19,9 +19,15 @@ import {
     SearchX,
     Sparkles,
     Sunrise,
+    Sun,
     Moon,
     Coffee,
-    Wind // 替代 AirVentIcon
+    Wind, // 替代 AirVentIcon
+    Bot, // 机器人图标
+    Droplets, // 加湿器图标
+    Mic,
+    Wifi,
+    WifiOff
   } from 'lucide-vue-next'
   
   // 导出所有图标
@@ -45,9 +51,15 @@ import {
     SearchX as SearchXIcon,
     Sparkles as SparklesIcon,
     Sunrise as SunriseIcon,
+    Sun as SunIcon,
     Moon as MoonIcon,
     Coffee as CoffeeIcon,
-    Wind as AirVentIcon
+    Wind as AirVentIcon,
+    Bot as BotIcon,
+    Droplets as DropletsIcon,
+    Mic as MicIcon,
+    Wifi as WifiIcon,
+    WifiOff as WifiOffIcon
   }
   
   // 设备类型到图标的映射
@@ -58,7 +70,9 @@ import {
     fan: Fan,
     speaker: Speaker,
     fridge: Refrigerator,
-    washer: WashingMachine
+    washer: WashingMachine,
+    robot: Bot,
+    humidifier: Droplets
   }
   
   // 房间ID到图标的映射
