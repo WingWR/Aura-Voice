@@ -1,6 +1,8 @@
 <!-- 设备管理主页面 - 智能家居控制中心 -->
 <template>
   <div class="device-management-page">
+	<PullPanel />
+	  
     <!-- 噪点纹理背景 -->
     <div class="noise-overlay" :class="{ 'noise-overlay--visible': showNoiseOverlay }" />
 
@@ -40,6 +42,9 @@
 
 // Vue 组合式 API
 import { ref, onMounted, onUnmounted } from 'vue'
+
+// 导入悬浮球组件
+import PullPanel from '../../../components/PullPanel.vue'
 
 // 导入子组件
 import SceneSection from './SceneSection.vue'

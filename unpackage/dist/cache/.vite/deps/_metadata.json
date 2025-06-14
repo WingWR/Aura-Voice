@@ -1,13 +1,13 @@
 {
-  "hash": "fead9720",
-  "configHash": "04be37c3",
-  "lockfileHash": "2e2cf7e3",
-  "browserHash": "e5dd8218",
+  "hash": "4828c51c",
+  "configHash": "2b0fc5e5",
+  "lockfileHash": "69ae2312",
+  "browserHash": "33fccc66",
   "optimized": {
     "lucide-vue-next": {
       "src": "../../../../../node_modules/lucide-vue-next/dist/esm/lucide-vue-next.js",
       "file": "lucide-vue-next.js",
-      "fileHash": "f93fd072",
+      "fileHash": "67762c9d",
       "needsInterop": false
     }
   },

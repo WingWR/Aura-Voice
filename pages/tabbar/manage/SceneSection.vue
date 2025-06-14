@@ -92,8 +92,8 @@ const handleSceneClick = async (sceneId) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -147,6 +147,7 @@ const handleSceneClick = async (sceneId) => {
 .scene-grid {
   display: grid;
   gap: 12px;
+  margin-bottom: 1rem;
   grid-template-columns: repeat(4, 1fr);
 }
 

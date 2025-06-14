@@ -4,7 +4,9 @@
     <view
       v-if="!isInputMode"
       class="start-button"
-    ></view>
+    >
+		<img src = "/static/icons/open.svg" class = "open-button">
+	</view>
 
     <!-- 波纹动画 -->
     <view v-if="isInputMode" class="wave-container">
@@ -116,5 +118,9 @@ function handleClick() {
   50% {
     transform: translateY(-12rpx);
   }
+}
+
+.open-button{
+	width: 100%;
 }
 </style>

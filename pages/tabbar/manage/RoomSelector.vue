@@ -306,11 +306,10 @@ defineExpose({
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 3rem;
   background: var(--card-bg);
   /* 确保最多显示2行 */
   max-height: 10rem;
-  overflow: hidden;
 }
 
 /* 房间项目 */
