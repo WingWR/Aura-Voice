@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>房间选择器组件预览</title>
+    <style>
+        /* 模拟应用的全局样式 */
+        :root {
+            --color-black: #000000;
+            --color-white: #ffffff;
+            --color-gray-100: #f3f4f6;
+            --color-gray-900: #111827;
+            --color-gray-950: #030712;
+            --app-bg: var(--color-black);
+            --text-primary: var(--color-white);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --card-radius: 20px;
+            --backdrop-blur: blur(16px);
+            --transition-fast: 0.15s;
+            --transition-normal: 0.3s;
+            --transition-slow: 0.5s;
+            --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-weight: 400;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(to bottom, var(--color-gray-900), var(--color-gray-950));
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .preview-container {
+            max-width: 28rem;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .preview-title {
+            text-align: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        /* 房间选择器样式 - 复制自组件 */
+        .room-selector-container {
+            width: 100%;
+            max-width: 28rem;
+            margin: 0 auto;
+            padding: 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--card-radius);
+            backdrop-filter: var(--backdrop-blur);
+            -webkit-backdrop-filter: var(--backdrop-blur);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #9CA3AF;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            margin: 0 0 0 0.5rem;
+            flex: 1;
+        }
+
+        .device-summary {
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            max-height: 10rem;
+            overflow: hidden;
+        }
+
+        .room-item {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.75rem;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .room-item:active {
+            transform: scale(0.95);
+            transition-duration: 0.1s;
+        }
+
+        .room-item.selected {
+            transform: scale(1.02);
+            z-index: 2;
+        }
+
+        .room-glow {
+            position: absolute;
+            inset: -2px;
+            border-radius: 0.875rem;
+            opacity: 0.6;
+            animation: pulse-glow 2s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .room-card {
+            position: relative;
+            height: 4.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .room-item.selected .room-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-badge {
+            position: absolute;
+            top: -0.375rem;
+            right: -0.375rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: white;
+            background: #6B7280;
+            border: 2px solid rgba(17, 24, 39, 0.8);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+
+        .room-item.selected .device-badge {
+            background: white !important;
+            color: #111827 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: scale(1.1);
+        }
+
+        .room-icon-wrapper {
+            margin-bottom: 0.25rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .room-item.selected .room-icon-wrapper {
+            background: rgba(255, 255, 255, 0.2) !important;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .room-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .room-item.selected .room-icon {
+            color: white !important;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .room-name {
+            font-size: 0.625rem;
+            font-weight: 500;
+            color: #D1D5DB;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .room-item.selected .room-name {
+            color: white;
+            font-weight: 600;
+        }
+
+        .selected-indicator {
+            position: absolute;
+            bottom: 0.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1rem;
+            height: 0.125rem;
+            border-radius: 0.0625rem;
+            opacity: 0.9;
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.75rem;
+        }
+
+        .current-room {
+            color: white;
+            font-weight: 500;
+        }
+
+        .online-count {
+            color: #9CA3AF;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                opacity: 0.4;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+        }
+
+        /* 简单的图标样式 */
+        .icon {
+            display: inline-block;
+            width: 1.25rem;
+            height: 1.25rem;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .home-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'/%3E%3C/svg%3E"); }
+        .sofa-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m4 0v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4h18z'/%3E%3C/svg%3E"); }
+        .bed-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4'/%3E%3C/svg%3E"); }
+        .kitchen-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6v6m0 0v6m0-6h6m-6 0H6'/%3E%3C/svg%3E"); }
+        .bathroom-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E"); }
+        .study-icon { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/%3E%3C/svg%3E"); }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1 class="preview-title">房间选择器组件预览</h1>
+        
+        <div class="room-selector-container">
+            <div class="section-header">
+                <div class="icon home-icon header-icon"></div>
+                <h2 class="section-title">房间</h2>
+                <div class="device-summary">11台设备</div>
+            </div>
+
+            <div class="room-grid">
+                <!-- 全部房间 -->
+                <div class="room-item selected" onclick="selectRoom(this, '全部')">
+                    <div class="room-glow" style="background: linear-gradient(135deg, #9CA3AF40, #9CA3AF20);"></div>
+                    <div class="room-card">
+                        <div class="device-badge">11</div>
+                        <div class="room-icon-wrapper">
+                            <div class="icon home-icon room-icon"></div>
+                        </div>
+                        <span class="room-name">全部</span>
+                        <div class="selected-indicator" style="background-color: #9CA3AF;"></div>
+                    </div>
+                </div>
+
+                <!-- 客厅 -->
+                <div class="room-item" onclick="selectRoom(this, '客厅')">
+                    <div class="room-card">
+                        <div class="device-badge" style="background-color: #3B82F6;">4</div>
+                        <div class="room-icon-wrapper" style="background-color: #3B82F620;">
+                            <div class="icon sofa-icon room-icon" style="color: #3B82F6;"></div>
+                        </div>
+                        <span class="room-name">客厅</span>
+                    </div>
+                </div>
+
+                <!-- 卧室 -->
+                <div class="room-item" onclick="selectRoom(this, '卧室')">
+                    <div class="room-card">
+                        <div class="device-badge" style="background-color: #8B5CF6;">3</div>
+                        <div class="room-icon-wrapper" style="background-color: #8B5CF620;">
+                            <div class="icon bed-icon room-icon" style="color: #8B5CF6;"></div>
+                        </div>
+                        <span class="room-name">卧室</span>
+                    </div>
+                </div>
+
+                <!-- 厨房 -->
+                <div class="room-item" onclick="selectRoom(this, '厨房')">
+                    <div class="room-card">
+                        <div class="device-badge" style="background-color: #F97316;">1</div>
+                        <div class="room-icon-wrapper" style="background-color: #F9731620;">
+                            <div class="icon kitchen-icon room-icon" style="color: #F97316;"></div>
+                        </div>
+                        <span class="room-name">厨房</span>
+                    </div>
+                </div>
+
+                <!-- 浴室 -->
+                <div class="room-item" onclick="selectRoom(this, '浴室')">
+                    <div class="room-card">
+                        <div class="device-badge" style="background-color: #06B6D4;">1</div>
+                        <div class="room-icon-wrapper" style="background-color: #06B6D420;">
+                            <div class="icon bathroom-icon room-icon" style="color: #06B6D4;"></div>
+                        </div>
+                        <span class="room-name">浴室</span>
+                    </div>
+                </div>
+
+                <!-- 书房 -->
+                <div class="room-item" onclick="selectRoom(this, '书房')">
+                    <div class="room-card">
+                        <div class="device-badge" style="background-color: #4B5563;">0</div>
+                        <div class="room-icon-wrapper" style="background-color: #10B98120;">
+                            <div class="icon study-icon room-icon" style="color: #10B981;"></div>
+                        </div>
+                        <span class="room-name">书房</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-info">
+                <span class="current-room" id="current-room">全部</span>
+                <span class="online-count">9/11 在线</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectRoom(element, roomName) {
+            // 移除所有选中状态
+            document.querySelectorAll('.room-item').forEach(item => {
+                item.classList.remove('selected');
+                const glow = item.querySelector('.room-glow');
+                if (glow) glow.remove();
+                const indicator = item.querySelector('.selected-indicator');
+                if (indicator) indicator.remove();
+            });
+
+            // 添加选中状态
+            element.classList.add('selected');
+            
+            // 添加光晕效果
+            const colors = {
+                '全部': '#9CA3AF',
+                '客厅': '#3B82F6',
+                '卧室': '#8B5CF6',
+                '厨房': '#F97316',
+                '浴室': '#06B6D4',
+                '书房': '#10B981'
+            };
+            
+            const color = colors[roomName];
+            const glow = document.createElement('div');
+            glow.className = 'room-glow';
+            glow.style.background = `linear-gradient(135deg, ${color}40, ${color}20)`;
+            element.insertBefore(glow, element.firstChild);
+
+            // 添加选中指示器
+            const indicator = document.createElement('div');
+            indicator.className = 'selected-indicator';
+            indicator.style.backgroundColor = color;
+            element.querySelector('.room-card').appendChild(indicator);
+
+            // 更新当前房间显示
+            document.getElementById('current-room').textContent = roomName;
+        }
+    </script>
+</body>
+</html>
