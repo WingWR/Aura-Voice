@@ -46,7 +46,7 @@ In the device management interface, users are provided with common scenario func
 - Use a scene diagram (taking "morning mode" as an example): 
 <img src = "../unpackage/res/Cases/image-4.png" width = 40%> 
 
-#### ** Room 2.3.2** 
+#### **2.3.2 Room** 
 
 In the equipment management interface, the entire house is divided into individual rooms, and the rooms are the basic units for different homes. Different furniture is classified according to the different rooms placed, and each room will display the number of equipment in the room, which greatly improves the readability and tidyness of the interface. In the case of too many devices, it is difficult for users to adjust directly, so it is very convenient to allow users to control individually for a certain room. 
 
@@ -93,8 +93,7 @@ Support dynamically setting the volume of the speaker and controlling the switch
 
 <img src = "../unpackage/res/Cases/image-12.png" width = 40%>
 
-##### **2.3.4悬浮语音窗**
-
+##### **2.3.4 Floating Voice Window**
 In the device management interface, voice input methods are also provided. Voice input is implemented here through a voice floating window. When the user clicks on the voice floating window, he will enter the voice recognition window and execute relevant instructions by reading the user's voice information, making the user's operation more convenient. 
 
 - Overview of voice floating window closing: 
