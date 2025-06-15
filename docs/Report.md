@@ -20,11 +20,13 @@ The voice recognition interface is divided into two states: before and after rec
 Before the recognition starts, the interface mainly includes a start button and prompt for text input 
 
 - Before starting typing: 
-<img src = "../unpackage/res/Cases/image.png" width =40%> 
+
+<img src = "../unpackage/res/Cases/image.png" width = 40%> 
 
 When the user clicks the Start button, the interface will prompt the user to have started inputting and generate a corresponding dynamic prompt. 
 
 - After starting typing: 
+
 <img src = "../unpackage/res/Cases/image-1.png" width = 40%>
 
 The voice recognition interface provides real-time feedback to users through dynamic responses, and at the same time uses a simple two-color combination, making the style and characteristics more prominent.
@@ -34,6 +36,7 @@ The voice recognition interface provides real-time feedback to users through dyn
 The device management interface is used to directly control all connected devices on the mobile phone. It is mainly divided into three modules, namely "common scenarios", "rooms", and "detailed devices". Through the designation management interface, users can directly control home devices without using voice recognition function. 
 
 - Equipment Management Overview Picture: 
+
 <img src = "../unpackage/res/Cases/image-2.png" width = 40%> 
 
 #### **2.3.1 Common Scenarios** 
@@ -41,9 +44,11 @@ The device management interface is used to directly control all connected device
 In the device management interface, users are provided with common scenario functions. Users can quickly switch the home appliance configuration in the corresponding usage scenarios by selecting common scenarios, allowing users to avoid the hassle of manually adjusting home appliances one by one, and conveniently adjust all home appliances at one time, satisfying the speed and convenience of smart homes. 
 
 - Overview of common scenarios: 
+
 <img src = "../unpackage/res/Cases/image-3.png" width = 40%> 
 
 - Use a scene diagram (taking "morning mode" as an example): 
+
 <img src = "../unpackage/res/Cases/image-4.png" width = 40%> 
 
 #### **2.3.2 Room** 
@@ -51,9 +56,11 @@ In the device management interface, users are provided with common scenario func
 In the equipment management interface, the entire house is divided into individual rooms, and the rooms are the basic units for different homes. Different furniture is classified according to the different rooms placed, and each room will display the number of equipment in the room, which greatly improves the readability and tidyness of the interface. In the case of too many devices, it is difficult for users to adjust directly, so it is very convenient to allow users to control individually for a certain room. 
 
 - Room overview: 
+
 <img src = "../unpackage/res/Cases/image-5.png" width = 40%> 
 
 - Switch room display (taking "living room" as an example): 
+
 <img src = "../unpackage/res/Cases/image-6.png" width = 40%> 
 
 #### **2.3.3 Detailed Equipment** 
@@ -61,6 +68,7 @@ In the equipment management interface, the entire house is divided into individu
 In the management interface, all devices are displayed in separate windows. The device details interface displays all devices in the current room. Displaying all the devices in the current room can make it easier for users to operate. After the user clicks on each individual device, he will enter the detailed setting interface of the device, which facilitates direct control of the home. 
 
 - Overview of all devices: 
+
 <img src = "../unpackage/res/Cases/image-7.png" width = 40%> 
 
 - Overview of light settings: 
@@ -97,10 +105,13 @@ Support dynamically setting the volume of the speaker and controlling the switch
 In the device management interface, voice input methods are also provided. Voice input is implemented here through a voice floating window. When the user clicks on the voice floating window, he will enter the voice recognition window and execute relevant instructions by reading the user's voice information, making the user's operation more convenient. 
 
 - Overview of voice floating window closing: 
+
 <img src = "../unpackage/res/Cases/image-14.png" width = 40%> 
 
 - Overview of voice window function triggering: 
+
 <img src = "../unpackage/res/Cases/image-15.png" width = 40%>
+
 ## **3.Interaction Design** 
 This system has introduced a number of human-computer interaction principles in its design to improve user experience, operational convenience and accessibility, including the following aspects: 
 
