@@ -5,6 +5,9 @@
       v-if="!isInputMode"
       class="start-button"
     >
+		<view class = "input-text">
+			请点击开始输入...
+		</view>	
 		<img src = "/static/icons/open.svg" class = "open-button">
 	</view>
 
@@ -100,6 +103,18 @@ function handleClick() {
 }
 
 /* 提示文字 */
+.input-text{
+	position: absolute;
+	top: 20%;
+	left: 32%;
+	font-size: 42rpx;
+	font-weight: bold;
+	color: #00bfa5;
+	animation: floatText 2s ease-in-out infinite;
+	z-index: 2;
+	user-select: none;
+}
+
 .hint-text {
   position: absolute;
   top: 70%;
