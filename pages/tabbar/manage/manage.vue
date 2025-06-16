@@ -2,7 +2,10 @@
 <template>
   <div class="device-management-page">
 	<PullPanel />
-	  
+
+	<!-- 蓝牙状态指示器 -->
+	<BluetoothStatus />
+
     <!-- 噪点纹理背景 -->
     <div class="noise-overlay" :class="{ 'noise-overlay--visible': showNoiseOverlay }" />
 
@@ -45,6 +48,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 // 导入悬浮球组件
 import PullPanel from '../../../components/PullPanel.vue'
+
+// 导入蓝牙状态组件
+import BluetoothStatus from '../../../components/BluetoothStatus.vue'
 
 // 导入子组件
 import SceneSection from './SceneSection.vue'

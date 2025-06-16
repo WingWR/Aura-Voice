@@ -2,14 +2,24 @@
   "hash": "c5e6805c",
   "configHash": "0e74fbd6",
   "lockfileHash": "2e4bff9b",
-  "browserHash": "ba4b614f",
+  "browserHash": "0b7e44a9",
   "optimized": {
     "crypto-js": {
       "src": "../../../../../node_modules/crypto-js/index.js",
       "file": "crypto-js.js",
-      "fileHash": "b5188e2b",
+      "fileHash": "522e3f17",
       "needsInterop": true
+    },
+    "lucide-vue-next": {
+      "src": "../../../../../node_modules/lucide-vue-next/dist/esm/lucide-vue-next.js",
+      "file": "lucide-vue-next.js",
+      "fileHash": "5fac897a",
+      "needsInterop": false
     }
   },
-  "chunks": {}
+  "chunks": {
+    "chunk-34Z2WVG2": {
+      "file": "chunk-34Z2WVG2.js"
+    }
+  }
 }

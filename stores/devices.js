@@ -1,5 +1,12 @@
 import { ref, reactive, computed, provide, inject } from 'vue'
 import { deviceTypeIcons } from '../components/icons/icons'
+import {
+  controlLivingRoomLight,
+  controlBedroomLight,
+  controlAC,
+  controlSpeaker,
+  deviceStates
+} from '../utils/deviceControl.js'
 
 // 设备数据
 const initialDevices = [
@@ -276,19 +283,49 @@ export function createDeviceStore() {
   // 切换设备状态
   const toggleDevice = async (id) => {
     loading.value = true
-    
+
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      const index = devices.value.findIndex(device => device.id === id)
-      if (index !== -1) {
-        devices.value[index] = {
-          ...devices.value[index],
-          active: !devices.value[index].active,
-          lastUpdated: new Date()
-        }
+      const device = devices.value.find(d => d.id === id)
+      if (!device) return
+
+      console.log(`[设备控制] 正在切换设备: ${device.name} (ID: ${id})`)
+
+      // 根据设备类型和名称调用相应的控制函数
+      let success = false
+
+      if (device.name === '客厅灯') {
+        success = await controlLivingRoomLight('toggle')
+      } else if (device.name === '卧室主灯') {
+        success = await controlBedroomLight('toggle')
+      } else if (device.name === '卧室氛围灯') {
+        success = await controlBedroomLight('toggleAmbient')
+      } else if (device.name === '空调') {
+        success = await controlAC('toggle')
+      } else if (device.name === '音响') {
+        success = await controlSpeaker('toggle')
+      } else {
+        // 对于其他设备，只显示调试信息但不发送蓝牙指令
+        console.log(`[设备控制] 设备 ${device.name} 暂不支持蓝牙控制，仅更新UI状态`)
+        success = true
+        // 模拟API调用延迟
+        await new Promise(resolve => setTimeout(resolve, 300))
       }
+
+      if (success) {
+        const index = devices.value.findIndex(device => device.id === id)
+        if (index !== -1) {
+          devices.value[index] = {
+            ...devices.value[index],
+            active: !devices.value[index].active,
+            lastUpdated: new Date()
+          }
+          console.log(`[设备控制] 设备状态更新成功: ${device.name} -> ${!device.active ? '开启' : '关闭'}`)
+        }
+      } else {
+        console.error(`[设备控制] 设备控制失败: ${device.name}`)
+      }
+    } catch (error) {
+      console.error('[设备控制] 切换设备时发生错误:', error)
     } finally {
       loading.value = false
     }
@@ -297,19 +334,49 @@ export function createDeviceStore() {
   // 更新设备属性
   const updateDeviceProperty = async (id, property, value) => {
     loading.value = true
-    
+
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      const index = devices.value.findIndex(device => device.id === id)
-      if (index !== -1) {
-        devices.value[index] = {
-          ...devices.value[index],
-          [property]: value,
-          lastUpdated: new Date()
+      const device = devices.value.find(d => d.id === id)
+      if (!device) return
+
+      console.log(`[设备控制] 正在更新设备属性: ${device.name} - ${property}: ${value}`)
+
+      // 根据设备类型和属性调用相应的控制函数
+      let success = false
+
+      if (device.name === '客厅灯' && property === 'brightnessLevel') {
+        if (value > device.brightnessLevel) {
+          success = await controlLivingRoomLight('brightnessUp')
+        } else if (value < device.brightnessLevel) {
+          success = await controlLivingRoomLight('brightnessDown')
+        } else {
+          success = true // 相同值，不需要操作
         }
+      } else if (device.name === '客厅灯' && property === 'colorHex') {
+        success = await controlLivingRoomLight('changeColor')
+      } else {
+        // 对于其他属性更新，只显示调试信息但不发送蓝牙指令
+        console.log(`[设备控制] 属性 ${property} 暂不支持蓝牙控制，仅更新UI状态`)
+        success = true
+        // 模拟API调用延迟
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
+
+      if (success) {
+        const index = devices.value.findIndex(device => device.id === id)
+        if (index !== -1) {
+          devices.value[index] = {
+            ...devices.value[index],
+            [property]: value,
+            lastUpdated: new Date()
+          }
+          console.log(`[设备控制] 设备属性更新成功: ${device.name} - ${property}: ${value}`)
+        }
+      } else {
+        console.error(`[设备控制] 设备属性更新失败: ${device.name} - ${property}: ${value}`)
+      }
+    } catch (error) {
+      console.error('[设备控制] 更新设备属性时发生错误:', error)
     } finally {
       loading.value = false
     }

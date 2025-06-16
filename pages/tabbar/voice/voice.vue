@@ -1,5 +1,8 @@
 <template>
   <view class="container" @click="handleClick">
+    <!-- 蓝牙状态指示器 -->
+    <BluetoothStatus />
+
     <!-- 初始圆形启动按钮 -->
     <view
       v-if="!isInputMode"
@@ -28,7 +31,31 @@
 
     <!-- 识别结果 -->
     <view v-if="recognizedText" class="result-text">
-      {{ recognizedText }}
+      <view class="recognition-text">
+        <text class="result-label">识别结果:</text>
+        <text class="result-content">{{ recognizedText }}</text>
+      </view>
+
+      <!-- 指令匹配结果 -->
+      <view v-if="matchResult" class="command-result">
+        <view v-if="matchResult.error" class="error-result">
+          <text class="error-icon">❌</text>
+          <text class="error-text">{{ matchResult.error }}</text>
+        </view>
+        <view v-else class="success-result">
+          <text class="success-icon">{{ commandExecuted ? '✅' : '🔄' }}</text>
+          <view class="command-info">
+            <text class="command-text">{{ matchResult.matchedCommand }}</text>
+            <text class="command-score">匹配度: {{ (matchResult.score * 100).toFixed(1) }}%</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 处理状态 -->
+      <view v-if="isProcessingCommand" class="processing-status">
+        <text class="processing-icon">⏳</text>
+        <text class="processing-text">正在处理指令...</text>
+      </view>
     </view>
 
     <!-- 录音回放控制面板 -->
@@ -78,6 +105,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { XunfeiSpeechRecognizerOfficial } from '@/utils/xunfeiSpeechOfficial.js'
 import { XunfeiSpeechRecognizerH5 } from '@/utils/xunfeiSpeechH5.js'
+import BluetoothStatus from '@/components/BluetoothStatus.vue'
+import { matchSingleCommand } from '@/utils/voiceCommandMatcher.js'
+import { bluetoothControl } from '@/utils/bluetooth.js'
 
 const isInputMode = ref(false)
 const waves = Array(3).fill(0)
@@ -91,6 +121,12 @@ const playbackDuration = ref(0)
 const playbackCurrentTime = ref(0)
 const playbackStatus = ref('idle')
 const showDebugInfo = ref(true) // 显示调试信息
+
+// 语音指令匹配相关状态
+const matchResult = ref(null)
+const isProcessingCommand = ref(false)
+const commandExecuted = ref(false)
+
 let audioContext = null
 let progressTimer = null
 
@@ -115,9 +151,62 @@ console.log('使用微信小程序版本语音识别器')
 // 初始化语音识别器
 onMounted(() => {
   // 设置结果回调
-  speechRecognizer.onResult = (text) => {
+  speechRecognizer.onResult = async (text) => {
     recognizedText.value = text
-    console.log('识别结果:', text)
+    console.log('[语音识别] 识别结果:', text)
+
+    // 清空之前的匹配结果
+    matchResult.value = null
+    commandExecuted.value = false
+
+    if (!text.trim()) return
+
+    try {
+      isProcessingCommand.value = true
+      console.log('[语音控制] 开始匹配语音指令...')
+
+      // 使用智能指令匹配
+      const result = matchSingleCommand(text)
+
+      if (result && !result.error) {
+        console.log('[语音控制] 指令匹配成功:', result)
+        matchResult.value = result
+
+        // 执行设备控制
+        await executeDeviceControl(result.signal, result.matchedCommand)
+        commandExecuted.value = true
+
+        // 显示成功提示
+        uni.showToast({
+          title: `执行: ${result.matchedCommand}`,
+          icon: 'success',
+          duration: 2000
+        })
+      } else {
+        console.log('[语音控制] 未找到匹配的指令:', result?.error || '无匹配结果')
+        matchResult.value = { error: result?.error || '未识别到有效指令' }
+
+        // 只在有明确设备控制意图时才提示
+        if (text.includes('打开') || text.includes('关闭') || text.includes('灯') || text.includes('空调') || text.includes('音响')) {
+          uni.showToast({
+            title: '未识别到有效指令',
+            icon: 'none',
+            duration: 2000
+          })
+        }
+      }
+    } catch (error) {
+      console.error('[语音控制] 处理识别结果失败:', error)
+      matchResult.value = { error: '指令处理失败' }
+
+      uni.showToast({
+        title: '指令执行失败',
+        icon: 'none',
+        duration: 2000
+      })
+    } finally {
+      isProcessingCommand.value = false
+    }
   }
 
   // 设置错误回调
@@ -174,12 +263,35 @@ onMounted(() => {
   }
 })
 
+// 执行设备控制
+async function executeDeviceControl(signal, command) {
+  console.log(`[语音控制] 执行设备控制: ${signal} - ${command}`)
+
+  try {
+    // 发送蓝牙指令
+    const success = await bluetoothControl.sendCommand(signal)
+
+    if (success) {
+      console.log(`[语音控制] 指令发送成功: ${signal}`)
+    } else {
+      console.warn(`[语音控制] 指令发送失败: ${signal}`)
+      throw new Error('蓝牙指令发送失败')
+    }
+  } catch (error) {
+    console.error('[语音控制] 设备控制失败:', error)
+    throw error
+  }
+}
+
 // 处理点击事件
 async function handleClick() {
   try {
     if (!isInputMode.value) {
-      // 清空之前的识别结果
+      // 清空之前的识别结果和匹配结果
       recognizedText.value = ''
+      matchResult.value = null
+      commandExecuted.value = false
+      isProcessingCommand.value = false
 
       // 开始录音
       console.log('开始语音识别...')
@@ -515,15 +627,113 @@ onUnmounted(() => {
   bottom: 280rpx;
   left: 50%;
   transform: translateX(-50%);
-  width: 80%;
+  width: 85%;
   padding: 30rpx;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   border-radius: 20rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  z-index: 3;
+  backdrop-filter: blur(10rpx);
+}
+
+.recognition-text {
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+
+.result-label {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.result-content {
+  display: block;
   font-size: 32rpx;
   color: #333;
-  text-align: center;
-  z-index: 3;
+  font-weight: 500;
+}
+
+.command-result {
+  border-top: 1rpx solid #eee;
+  padding-top: 20rpx;
+  margin-top: 20rpx;
+}
+
+.error-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+
+.error-icon {
+  font-size: 24rpx;
+}
+
+.error-text {
+  font-size: 24rpx;
+  color: #ff4757;
+}
+
+.success-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15rpx;
+}
+
+.success-icon {
+  font-size: 28rpx;
+}
+
+.command-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.command-text {
+  font-size: 26rpx;
+  color: #00bfa5;
+  font-weight: 500;
+  margin-bottom: 5rpx;
+}
+
+.command-score {
+  font-size: 20rpx;
+  color: #666;
+}
+
+.processing-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  margin-top: 15rpx;
+  padding: 10rpx;
+  background-color: rgba(255, 193, 7, 0.1);
+  border-radius: 10rpx;
+}
+
+.processing-icon {
+  font-size: 24rpx;
+  animation: spin 1s linear infinite;
+}
+
+.processing-text {
+  font-size: 24rpx;
+  color: #ffc107;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 录音回放面板样式 */
