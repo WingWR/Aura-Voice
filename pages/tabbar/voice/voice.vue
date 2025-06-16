@@ -29,24 +29,41 @@
       正在聆听中...
     </view>
 
-    <!-- 识别结果 -->
-    <view v-if="recognizedText" class="result-text">
+    <!-- 中间识别结果 -->
+    <view v-if="intermediateText && isInputMode" class="intermediate-result">
+      <view class="intermediate-text">
+        <text class="intermediate-label">实时识别:</text>
+        <text class="intermediate-content">{{ intermediateText }}</text>
+      </view>
+    </view>
+
+    <!-- 最终识别结果 -->
+    <view v-if="finalText" class="result-text">
       <view class="recognition-text">
-        <text class="result-label">识别结果:</text>
-        <text class="result-content">{{ recognizedText }}</text>
+        <text class="result-label">识别完成:</text>
+        <text class="result-content">{{ finalText }}</text>
       </view>
 
       <!-- 指令匹配结果 -->
-      <view v-if="matchResult" class="command-result">
-        <view v-if="matchResult.error" class="error-result">
-          <text class="error-icon">❌</text>
-          <text class="error-text">{{ matchResult.error }}</text>
+      <view v-if="detectedCommands.length > 0" class="command-result">
+        <view class="commands-header">
+          <text class="commands-title">🎯 识别到的指令 ({{ detectedCommands.length }}个)</text>
         </view>
-        <view v-else class="success-result">
-          <text class="success-icon">{{ commandExecuted ? '✅' : '🔄' }}</text>
-          <view class="command-info">
-            <text class="command-text">{{ matchResult.matchedCommand }}</text>
-            <text class="command-score">匹配度: {{ (matchResult.score * 100).toFixed(1) }}%</text>
+        <view class="commands-list">
+          <view v-for="(cmd, index) in detectedCommands" :key="index" class="command-item"
+            :class="{
+              'command-executing': executingCommands.includes(cmd.signal),
+              'command-completed': cmd.executed
+            }">
+            <view class="command-info">
+              <text class="command-name">{{ cmd.matchedCommand }}</text>
+              <text class="command-confidence">匹配度: {{ (cmd.score * 100).toFixed(1) }}%</text>
+            </view>
+            <view class="command-status">
+              <text v-if="executingCommands.includes(cmd.signal)" class="status-executing">⏳</text>
+              <text v-else-if="cmd.executed" class="status-completed">✅</text>
+              <text v-else class="status-pending">⏸️</text>
+            </view>
           </view>
         </view>
       </view>
@@ -57,6 +74,8 @@
         <text class="processing-text">正在处理指令...</text>
       </view>
     </view>
+
+
 
     <!-- 录音回放控制面板 -->
     <view v-if="lastRecordingFile" class="playback-panel">
@@ -106,7 +125,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { XunfeiSpeechRecognizerOfficial } from '@/utils/xunfeiSpeechOfficial.js'
 import { XunfeiSpeechRecognizerH5 } from '@/utils/xunfeiSpeechH5.js'
 import BluetoothStatus from '@/components/BluetoothStatus.vue'
-import { matchSingleCommand } from '@/utils/voiceCommandMatcher.js'
+import { matchCommand, matchSingleCommand } from '@/utils/voiceCommandMatcher.js'
 import { bluetoothControl } from '@/utils/bluetooth.js'
 import {
   controlLivingRoomLight,
@@ -118,6 +137,10 @@ import {
 const isInputMode = ref(false)
 const waves = Array(3).fill(0)
 const recognizedText = ref('')
+const intermediateText = ref('') // 中间识别结果
+const finalText = ref('') // 最终识别结果
+const detectedCommands = ref([]) // 识别到的指令列表
+const executingCommands = ref([]) // 正在执行的指令列表
 
 // 录音回放相关状态
 const lastRecordingFile = ref(null)
@@ -129,9 +152,7 @@ const playbackStatus = ref('idle')
 const showDebugInfo = ref(true) // 显示调试信息
 
 // 语音指令匹配相关状态
-const matchResult = ref(null)
 const isProcessingCommand = ref(false)
-const commandExecuted = ref(false)
 
 // 防重复执行
 const lastProcessedText = ref('')
@@ -160,89 +181,26 @@ console.log('使用微信小程序版本语音识别器')
 
 // 初始化语音识别器
 onMounted(() => {
-  // 设置结果回调
+  // 设置中间结果回调（实时显示）
+  speechRecognizer.onIntermediateResult = (text, isFinal) => {
+    console.log(`[语音识别] ${isFinal ? '最终' : '中间'}结果:`, text)
+
+    if (isFinal) {
+      // 最终结果：检测并执行所有指令
+      finalText.value = text
+      intermediateText.value = '' // 清空中间结果
+      detectAndExecuteCommands(text)
+    } else {
+      // 中间结果：实时显示
+      intermediateText.value = text
+      recognizedText.value = text // 保持兼容性
+    }
+  }
+
+  // 设置最终结果回调（已废弃，保持兼容性）
   speechRecognizer.onResult = async (text) => {
-    recognizedText.value = text
-    console.log('[语音识别] 识别结果:', text)
-
-    // 防重复执行：检查是否与上次处理的文本相同
-    if (text.trim() === lastProcessedText.value.trim()) {
-      console.log('[语音控制] 重复的识别结果，跳过处理:', text)
-      return
-    }
-
-    // 防重复执行：清除之前的处理超时
-    if (processingTimeout.value) {
-      clearTimeout(processingTimeout.value)
-      processingTimeout.value = null
-    }
-
-    // 清空之前的匹配结果
-    matchResult.value = null
-    commandExecuted.value = false
-
-    if (!text.trim()) return
-
-    // 防重复执行：如果正在处理指令，跳过
-    if (isProcessingCommand.value) {
-      console.log('[语音控制] 正在处理指令中，跳过新的识别结果:', text)
-      return
-    }
-
-    try {
-      isProcessingCommand.value = true
-      lastProcessedText.value = text.trim()
-      console.log('[语音控制] 开始匹配语音指令...')
-
-      // 使用智能指令匹配
-      const result = matchSingleCommand(text)
-
-      if (result && !result.error) {
-        console.log('[语音控制] 指令匹配成功:', result)
-        matchResult.value = result
-
-        // 执行设备控制
-        await executeDeviceControl(result.signal, result.matchedCommand)
-        commandExecuted.value = true
-
-        // 显示成功提示
-        uni.showToast({
-          title: `执行: ${result.matchedCommand}`,
-          icon: 'success',
-          duration: 2000
-        })
-      } else {
-        console.log('[语音控制] 未找到匹配的指令:', result?.error || '无匹配结果')
-        matchResult.value = { error: result?.error || '未识别到有效指令' }
-
-        // 只在有明确设备控制意图时才提示
-        if (text.includes('打开') || text.includes('关闭') || text.includes('灯') || text.includes('空调') || text.includes('音响')) {
-          uni.showToast({
-            title: '未识别到有效指令',
-            icon: 'none',
-            duration: 2000
-          })
-        }
-      }
-    } catch (error) {
-      console.error('[语音控制] 处理识别结果失败:', error)
-      matchResult.value = { error: '指令处理失败' }
-
-      uni.showToast({
-        title: '指令执行失败',
-        icon: 'none',
-        duration: 2000
-      })
-    } finally {
-      isProcessingCommand.value = false
-
-      // 设置超时清除，防止长时间阻塞
-      processingTimeout.value = setTimeout(() => {
-        lastProcessedText.value = ''
-        isProcessingCommand.value = false
-        processingTimeout.value = null
-      }, 3000)
-    }
+    console.log('[语音识别] 最终结果回调:', text)
+    // 这个回调现在主要用于兼容性，实际处理在 onIntermediateResult 中
   }
 
   // 设置错误回调
@@ -298,6 +256,120 @@ onMounted(() => {
     console.log('========================')
   }
 })
+
+// 检测并执行所有指令
+async function detectAndExecuteCommands(text) {
+  console.log('[语音控制] 开始检测指令:', text)
+
+  // 防重复执行：检查是否与上次处理的文本相同
+  if (text.trim() === lastProcessedText.value.trim()) {
+    console.log('[语音控制] 重复的识别结果，跳过处理:', text)
+    return
+  }
+
+  if (!text.trim()) return
+
+  try {
+    lastProcessedText.value = text.trim()
+
+    // 使用统一的指令匹配函数
+    const commands = matchCommand(text)
+
+    if (commands.length > 0 && !commands[0].error) {
+      console.log(`[语音控制] 检测到 ${commands.length} 个指令:`, commands)
+
+      // 添加到检测列表（去重）
+      commands.forEach(cmd => {
+        if (!cmd.error) {
+          const exists = detectedCommands.value.find(existing =>
+            existing.signal === cmd.signal && existing.matchedCommand === cmd.matchedCommand
+          )
+          if (!exists) {
+            detectedCommands.value.push({
+              ...cmd,
+              executed: false,
+              timestamp: new Date()
+            })
+          }
+        }
+      })
+
+      // 执行所有新检测到的指令
+      await executeAllCommands(commands.filter(cmd => !cmd.error))
+
+    } else {
+      console.log('[语音控制] 未检测到有效指令')
+
+      // 只在有明确设备控制意图时才提示
+      if (text.includes('打开') || text.includes('关闭') || text.includes('灯') || text.includes('空调') || text.includes('音响')) {
+        uni.showToast({
+          title: '未识别到有效指令',
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    }
+  } catch (error) {
+    console.error('[语音控制] 处理识别结果失败:', error)
+
+    uni.showToast({
+      title: '指令处理失败',
+      icon: 'none',
+      duration: 2000
+    })
+  }
+}
+
+
+
+// 执行所有指令
+async function executeAllCommands(commands) {
+  console.log(`[批量执行] 开始执行 ${commands.length} 个指令`)
+
+  for (const command of commands) {
+    try {
+      // 标记为正在执行
+      executingCommands.value.push(command.signal)
+
+      console.log(`[批量执行] 执行指令: ${command.matchedCommand}`)
+
+      // 执行设备控制
+      await executeDeviceControl(command.signal, command.matchedCommand)
+
+      // 标记为已完成
+      const detectedCmd = detectedCommands.value.find(cmd =>
+        cmd.signal === command.signal && cmd.matchedCommand === command.matchedCommand
+      )
+      if (detectedCmd) {
+        detectedCmd.executed = true
+      }
+
+      console.log(`[批量执行] 指令执行成功: ${command.matchedCommand}`)
+
+    } catch (error) {
+      console.error(`[批量执行] 指令执行失败: ${command.matchedCommand}`, error)
+    } finally {
+      // 移除执行标记
+      const index = executingCommands.value.indexOf(command.signal)
+      if (index > -1) {
+        executingCommands.value.splice(index, 1)
+      }
+    }
+
+    // 指令间延迟，避免过快执行
+    await new Promise(resolve => setTimeout(resolve, 300))
+  }
+
+  // 显示执行结果
+  const successCount = commands.length
+  uni.showToast({
+    title: `执行完成: ${successCount}个指令`,
+    icon: 'success',
+    duration: 2000
+  })
+
+  console.log(`[批量执行] 所有指令执行完成`)
+}
 
 // 执行设备控制
 async function executeDeviceControl(signal, command) {
@@ -371,10 +443,12 @@ async function handleClick() {
     if (!isInputMode.value) {
       // 清空之前的识别结果和匹配结果
       recognizedText.value = ''
-      matchResult.value = null
-      commandExecuted.value = false
+      intermediateText.value = ''
+      finalText.value = ''
       isProcessingCommand.value = false
       lastProcessedText.value = ''
+      detectedCommands.value = []
+      executingCommands.value = []
 
       // 清除处理超时
       if (processingTimeout.value) {
@@ -726,7 +800,41 @@ onUnmounted(() => {
 	width: 100%;
 }
 
-/* 识别结果样式 */
+/* 中间识别结果样式 */
+.intermediate-result {
+  position: absolute;
+  bottom: 350rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  padding: 20rpx 30rpx;
+  background: rgba(0, 191, 165, 0.1);
+  border: 2rpx dashed #00bfa5;
+  border-radius: 15rpx;
+  z-index: 2;
+  backdrop-filter: blur(5rpx);
+}
+
+.intermediate-text {
+  text-align: center;
+}
+
+.intermediate-label {
+  display: block;
+  font-size: 22rpx;
+  color: #00bfa5;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.intermediate-content {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.4;
+}
+
+/* 最终识别结果样式 */
 .result-text {
   position: absolute;
   bottom: 280rpx;
@@ -766,49 +874,89 @@ onUnmounted(() => {
   margin-top: 20rpx;
 }
 
-.error-result {
+.commands-header {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #eee;
+  margin-bottom: 15rpx;
 }
 
-.error-icon {
+.commands-title {
   font-size: 24rpx;
+  font-weight: bold;
+  color: #00bfa5;
 }
 
-.error-text {
-  font-size: 24rpx;
-  color: #ff4757;
+.commands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
 }
 
-.success-result {
+.command-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 15rpx;
+  justify-content: space-between;
+  padding: 15rpx;
+  background: #f8f9fa;
+  border-radius: 10rpx;
+  border-left: 3rpx solid #ddd;
+  transition: all 0.3s ease;
 }
 
-.success-icon {
-  font-size: 28rpx;
+.command-item.command-executing {
+  background: rgba(255, 193, 7, 0.1);
+  border-left-color: #ffc107;
+  animation: pulse 1.5s infinite;
+}
+
+.command-item.command-completed {
+  background: rgba(76, 175, 80, 0.1);
+  border-left-color: #4caf50;
 }
 
 .command-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 5rpx;
 }
 
-.command-text {
-  font-size: 26rpx;
-  color: #00bfa5;
+.command-name {
+  font-size: 24rpx;
   font-weight: 500;
-  margin-bottom: 5rpx;
+  color: #333;
 }
 
-.command-score {
+.command-confidence {
   font-size: 20rpx;
   color: #666;
+}
+
+.command-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50rpx;
+  height: 50rpx;
+}
+
+.status-executing {
+  font-size: 24rpx;
+  animation: spin 1s linear infinite;
+}
+
+.status-completed {
+  font-size: 24rpx;
+  color: #4caf50;
+}
+
+.status-pending {
+  font-size: 24rpx;
+  color: #999;
 }
 
 .processing-status {
@@ -840,6 +988,17 @@ onUnmounted(() => {
     transform: rotate(360deg);
   }
 }
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+
 
 /* 录音回放面板样式 */
 .playback-panel {

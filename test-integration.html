@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音指令整合测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .test-button {
+            background: #00bfa5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #00a693;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #00bfa5;
+        }
+        .command-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #e8f5e8;
+            border-radius: 4px;
+            border-left: 3px solid #4caf50;
+        }
+        .command-info {
+            flex: 1;
+        }
+        .command-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .command-score {
+            font-size: 14px;
+            color: #666;
+        }
+        .command-status {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 语音指令整合测试</h1>
+        <p>测试整合后的指令匹配功能，验证UI整合效果</p>
+
+        <div class="test-section">
+            <h3>指令匹配测试</h3>
+            <input type="text" class="test-input" id="testInput" placeholder="输入语音指令，例如：打开客厅的灯" value="打开客厅的灯">
+            <button class="test-button" onclick="testCommand()">测试指令匹配</button>
+            <div id="testResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>多指令测试</h3>
+            <input type="text" class="test-input" id="multiInput" placeholder="输入多个指令，例如：打开客厅的灯和空调" value="打开客厅的灯和空调">
+            <button class="test-button" onclick="testMultiCommand()">测试多指令</button>
+            <div id="multiResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>UI整合效果预览</h3>
+            <p>模拟整合后的结果显示效果：</p>
+            <div class="result">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <strong>识别完成:</strong> 打开客厅的灯和空调。
+                </div>
+                <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                    <div style="text-align: center; margin-bottom: 15px; color: #00bfa5; font-weight: bold;">
+                        🎯 识别到的指令 (2个)
+                    </div>
+                    <div class="command-item">
+                        <div class="command-info">
+                            <div class="command-name">打开客厅的灯</div>
+                            <div class="command-score">匹配度: 100.0%</div>
+                        </div>
+                        <div class="command-status">✅</div>
+                    </div>
+                    <div class="command-item">
+                        <div class="command-info">
+                            <div class="command-name">打开空调</div>
+                            <div class="command-score">匹配度: 95.2%</div>
+                        </div>
+                        <div class="command-status">✅</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟指令映射表
+        const instructionMap = {
+            "1": "打开客厅的灯",
+            "2": "加大客厅的灯光",
+            "3": "降低客厅的灯光",
+            "4": "转换客厅的灯光颜色",
+            "5": "关闭客厅的灯光",
+            "6": "打开卧室的灯",
+            "7": "打开卧室的氛围灯",
+            "8": "关闭卧室的灯",
+            "9": "打开空调",
+            "a": "关闭空调",
+            "b": "打开音响，放一首歌",
+            "c": "关闭音响"
+        };
+
+        // 简化的匹配函数
+        function matchCommand(input) {
+            const results = [];
+            const commands = input.split(/[，。；,;和还有以及与跟同时一起]/).filter(s => s.trim());
+            
+            for (const command of commands) {
+                const trimmed = command.trim();
+                if (!trimmed) continue;
+
+                // 简单匹配逻辑
+                let bestMatch = null;
+                let bestScore = 0;
+
+                for (const [signal, text] of Object.entries(instructionMap)) {
+                    let score = 0;
+                    
+                    // 精确匹配
+                    if (text === trimmed) {
+                        score = 1.0;
+                    } else {
+                        // 关键词匹配
+                        const inputWords = trimmed.split('');
+                        const textWords = text.split('');
+                        let matches = 0;
+                        
+                        for (const word of inputWords) {
+                            if (textWords.includes(word)) {
+                                matches++;
+                            }
+                        }
+                        score = matches / Math.max(inputWords.length, textWords.length);
+                    }
+
+                    if (score > bestScore && score > 0.3) {
+                        bestScore = score;
+                        bestMatch = {
+                            signal,
+                            matchedCommand: text,
+                            matchType: score === 1.0 ? "exact" : "flexible",
+                            score,
+                            input: trimmed
+                        };
+                    }
+                }
+
+                if (bestMatch) {
+                    results.push(bestMatch);
+                } else {
+                    results.push({
+                        error: "未找到匹配的指令",
+                        input: trimmed
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        function testCommand() {
+            const input = document.getElementById('testInput').value;
+            const results = matchCommand(input);
+            displayResults('testResult', results);
+        }
+
+        function testMultiCommand() {
+            const input = document.getElementById('multiInput').value;
+            const results = matchCommand(input);
+            displayResults('multiResult', results);
+        }
+
+        function displayResults(containerId, results) {
+            const container = document.getElementById(containerId);
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div class="result">未找到匹配的指令</div>';
+                return;
+            }
+
+            let html = '<div class="result">';
+            html += `<div style="text-align: center; margin-bottom: 15px;"><strong>识别完成:</strong> ${results.map(r => r.input).join('，')}。</div>`;
+            
+            if (results.some(r => !r.error)) {
+                html += '<div style="border-top: 1px solid #eee; padding-top: 15px;">';
+                html += `<div style="text-align: center; margin-bottom: 15px; color: #00bfa5; font-weight: bold;">🎯 识别到的指令 (${results.filter(r => !r.error).length}个)</div>`;
+                
+                results.forEach(result => {
+                    if (!result.error) {
+                        html += `
+                            <div class="command-item">
+                                <div class="command-info">
+                                    <div class="command-name">${result.matchedCommand}</div>
+                                    <div class="command-score">匹配度: ${(result.score * 100).toFixed(1)}%</div>
+                                </div>
+                                <div class="command-status">✅</div>
+                            </div>
+                        `;
+                    }
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // 页面加载时运行测试
+        window.onload = function() {
+            testCommand();
+        };
+    </script>
+</body>
+</html>

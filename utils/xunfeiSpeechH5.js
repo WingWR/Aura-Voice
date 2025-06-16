@@ -120,7 +120,12 @@ export class XunfeiSpeechRecognizerH5 {
 
       console.log(str)
 
-      // 只有最终结果才触发回调，避免重复执行
+      // 触发中间结果回调（用于实时显示）
+      if (fullText.trim() && this.onIntermediateResult) {
+        this.onIntermediateResult(fullText, isFinalResult)
+      }
+
+      // 只有最终结果才触发最终回调（用于执行指令）
       if (isFinalResult && fullText.trim() && this.onResult) {
         this.currentText = fullText
         this.onResult(fullText)

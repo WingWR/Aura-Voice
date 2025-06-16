@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多指令检测与执行演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .voice-interface {
+            position: relative;
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .record-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #00bfa5;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 191, 165, 0.3);
+        }
+        .record-button:hover {
+            transform: scale(1.05);
+        }
+        .record-button.recording {
+            background: #ff5722;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .intermediate-result {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 191, 165, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px dashed #00bfa5;
+            max-width: 80%;
+            text-align: center;
+            font-size: 14px;
+        }
+        .final-result {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 80%;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .commands-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .commands-header {
+            background: linear-gradient(135deg, #00bfa5, #00a693);
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .commands-list {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .command-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        .command-item.executing {
+            background: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+        .command-item.completed {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: #4caf50;
+        }
+        .command-info {
+            flex: 1;
+        }
+        .command-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .command-confidence {
+            font-size: 12px;
+            color: #666;
+        }
+        .command-status {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+        }
+        .status-executing {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .demo-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .demo-btn {
+            padding: 12px 16px;
+            border: 1px solid #00bfa5;
+            background: white;
+            color: #00bfa5;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .demo-btn:hover {
+            background: #00bfa5;
+            color: white;
+        }
+        .status-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .log-panel {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .log-time {
+            color: #a0aec0;
+        }
+        .log-info { color: #63b3ed; }
+        .log-success { color: #68d391; }
+        .log-warning { color: #fbb6ce; }
+        .log-error { color: #fc8181; }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 class="title">🎤 多指令检测与执行演示</h1>
+        
+        <div id="app">
+            <!-- 语音界面 -->
+            <div class="voice-interface">
+                <button 
+                    class="record-button" 
+                    :class="{ recording: isRecording }"
+                    @click="toggleRecording"
+                >
+                    {{ isRecording ? '停止录音' : '开始录音' }}
+                </button>
+                
+                <div v-if="intermediateText && isRecording" class="intermediate-result">
+                    实时识别: {{ intermediateText }}
+                </div>
+                
+                <div v-if="finalText" class="final-result">
+                    识别完成: {{ finalText }}
+                </div>
+            </div>
+            
+            <!-- 指令面板 -->
+            <div v-if="detectedCommands.length > 0" class="commands-panel">
+                <div class="commands-header">
+                    🎯 检测到的指令 ({{ detectedCommands.length }}个)
+                </div>
+                <div class="commands-list">
+                    <div v-for="(cmd, index) in detectedCommands" :key="index" 
+                         class="command-item"
+                         :class="{ 
+                           executing: executingCommands.includes(cmd.signal),
+                           completed: cmd.executed 
+                         }">
+                        <div class="command-info">
+                            <div class="command-name">{{ cmd.matchedCommand }}</div>
+                            <div class="command-confidence">匹配度: {{ (cmd.score * 100).toFixed(1) }}%</div>
+                        </div>
+                        <div class="command-status">
+                            <span v-if="executingCommands.includes(cmd.signal)" class="status-executing">⏳</span>
+                            <span v-else-if="cmd.executed">✅</span>
+                            <span v-else>⏸️</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 演示控制 -->
+            <div class="demo-controls">
+                <button class="demo-btn" @click="simulateVoice('打开客厅灯')">单指令: 打开客厅灯</button>
+                <button class="demo-btn" @click="simulateVoice('打开客厅灯，然后关闭空调')">双指令: 开灯+关空调</button>
+                <button class="demo-btn" @click="simulateVoice('打开客厅灯，关闭空调，播放音乐')">三指令: 开灯+关空调+音乐</button>
+                <button class="demo-btn" @click="simulateVoice('打开所有灯光设备')">模糊指令测试</button>
+                <button class="demo-btn" @click="reset">重置</button>
+                <button class="demo-btn" @click="clearLog">清空日志</button>
+            </div>
+            
+            <!-- 状态面板 -->
+            <div class="status-panel">
+                <div class="status-item">
+                    <span>录音状态:</span>
+                    <span>{{ recordingStatus }}</span>
+                </div>
+                <div class="status-item">
+                    <span>检测到指令:</span>
+                    <span>{{ detectedCommands.length }}个</span>
+                </div>
+                <div class="status-item">
+                    <span>执行中指令:</span>
+                    <span>{{ executingCommands.length }}个</span>
+                </div>
+                <div class="status-item">
+                    <span>已完成指令:</span>
+                    <span>{{ completedCount }}个</span>
+                </div>
+            </div>
+            
+            <!-- 日志面板 -->
+            <div class="log-panel">
+                <div v-for="log in logs" :key="log.id" class="log-item" :class="`log-${log.type}`">
+                    <span class="log-time">[{{ log.time }}]</span> {{ log.message }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const isRecording = ref(false);
+                const intermediateText = ref('');
+                const finalText = ref('');
+                const detectedCommands = ref([]);
+                const executingCommands = ref([]);
+                const recordingStatus = ref('空闲');
+                const logs = ref([]);
+                let logId = 0;
+
+                const completedCount = computed(() => {
+                    return detectedCommands.value.filter(cmd => cmd.executed).length;
+                });
+
+                const addLog = (message, type = 'info') => {
+                    logs.value.unshift({
+                        id: ++logId,
+                        time: new Date().toLocaleTimeString(),
+                        message,
+                        type
+                    });
+                    if (logs.value.length > 50) {
+                        logs.value.pop();
+                    }
+                };
+
+                const toggleRecording = () => {
+                    if (isRecording.value) {
+                        stopRecording();
+                    } else {
+                        startRecording();
+                    }
+                };
+
+                const startRecording = () => {
+                    isRecording.value = true;
+                    recordingStatus.value = '录音中';
+                    intermediateText.value = '';
+                    finalText.value = '';
+                    addLog('开始录音', 'info');
+                };
+
+                const stopRecording = () => {
+                    isRecording.value = false;
+                    recordingStatus.value = '处理中';
+                    addLog('录音结束，开始处理', 'info');
+                    
+                    setTimeout(() => {
+                        const finalResult = intermediateText.value || '打开客厅灯，关闭空调';
+                        finalText.value = finalResult;
+                        intermediateText.value = '';
+                        recordingStatus.value = '完成';
+                        detectAndExecuteCommands(finalResult);
+                    }, 1000);
+                };
+
+                const detectAndExecuteCommands = async (text) => {
+                    addLog(`开始检测指令: "${text}"`, 'info');
+                    
+                    // 模拟多指令检测
+                    const commands = detectMultipleCommands(text);
+                    
+                    if (commands.length > 0) {
+                        addLog(`检测到 ${commands.length} 个指令`, 'success');
+                        
+                        // 添加到检测列表（去重）
+                        commands.forEach(cmd => {
+                            const exists = detectedCommands.value.find(existing => 
+                                existing.signal === cmd.signal && existing.matchedCommand === cmd.matchedCommand
+                            );
+                            if (!exists) {
+                                detectedCommands.value.push({
+                                    ...cmd,
+                                    executed: false,
+                                    timestamp: new Date()
+                                });
+                                addLog(`新增指令: ${cmd.matchedCommand}`, 'info');
+                            } else {
+                                addLog(`跳过重复指令: ${cmd.matchedCommand}`, 'warning');
+                            }
+                        });
+                        
+                        // 执行所有新检测到的指令
+                        await executeAllCommands(commands);
+                    } else {
+                        addLog('未检测到有效指令', 'warning');
+                    }
+                };
+
+                const detectMultipleCommands = (text) => {
+                    const commands = [];
+                    
+                    // 指令映射表
+                    const commandMap = {
+                        '打开客厅灯': { signal: '1', command: '打开客厅的灯', score: 0.95 },
+                        '关闭客厅灯': { signal: '5', command: '关闭客厅的灯光', score: 0.95 },
+                        '打开空调': { signal: '9', command: '打开空调', score: 0.95 },
+                        '关闭空调': { signal: 'a', command: '关闭空调', score: 0.95 },
+                        '播放音乐': { signal: 'b', command: '打开音响，放一首歌', score: 0.90 },
+                        '关闭音响': { signal: 'c', command: '关闭音响', score: 0.95 }
+                    };
+                    
+                    // 检测方法1: 直接匹配
+                    for (const [key, value] of Object.entries(commandMap)) {
+                        if (text.includes(key)) {
+                            commands.push({
+                                signal: value.signal,
+                                matchedCommand: value.command,
+                                matchType: 'direct',
+                                score: value.score,
+                                input: text
+                            });
+                        }
+                    }
+                    
+                    // 检测方法2: 关键词组合
+                    const patterns = [
+                        { keywords: ['打开', '灯'], signal: '1', command: '打开客厅的灯' },
+                        { keywords: ['关闭', '灯'], signal: '5', command: '关闭客厅的灯光' },
+                        { keywords: ['空调'], signal: text.includes('关闭') ? 'a' : '9', 
+                          command: text.includes('关闭') ? '关闭空调' : '打开空调' }
+                    ];
+                    
+                    for (const pattern of patterns) {
+                        const allPresent = pattern.keywords.every(kw => text.includes(kw));
+                        if (allPresent && !commands.find(cmd => cmd.signal === pattern.signal)) {
+                            commands.push({
+                                signal: pattern.signal,
+                                matchedCommand: pattern.command,
+                                matchType: 'keyword',
+                                score: 0.8,
+                                input: text
+                            });
+                        }
+                    }
+                    
+                    return commands;
+                };
+
+                const executeAllCommands = async (commands) => {
+                    addLog(`开始执行 ${commands.length} 个指令`, 'info');
+                    
+                    for (const command of commands) {
+                        try {
+                            executingCommands.value.push(command.signal);
+                            addLog(`执行指令: ${command.matchedCommand}`, 'info');
+                            
+                            // 模拟执行延迟
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                            
+                            // 标记为已完成
+                            const detectedCmd = detectedCommands.value.find(cmd => 
+                                cmd.signal === command.signal && cmd.matchedCommand === command.matchedCommand
+                            );
+                            if (detectedCmd) {
+                                detectedCmd.executed = true;
+                            }
+                            
+                            addLog(`指令执行成功: ${command.matchedCommand}`, 'success');
+                            
+                        } catch (error) {
+                            addLog(`指令执行失败: ${command.matchedCommand}`, 'error');
+                        } finally {
+                            const index = executingCommands.value.indexOf(command.signal);
+                            if (index > -1) {
+                                executingCommands.value.splice(index, 1);
+                            }
+                        }
+                        
+                        // 指令间延迟
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                    
+                    addLog(`所有指令执行完成`, 'success');
+                };
+
+                const simulateVoice = (text) => {
+                    finalText.value = text;
+                    detectAndExecuteCommands(text);
+                };
+
+                const reset = () => {
+                    isRecording.value = false;
+                    intermediateText.value = '';
+                    finalText.value = '';
+                    detectedCommands.value = [];
+                    executingCommands.value = [];
+                    recordingStatus.value = '空闲';
+                    addLog('系统已重置', 'info');
+                };
+
+                const clearLog = () => {
+                    logs.value = [];
+                };
+
+                // 初始化
+                addLog('多指令检测与执行演示系统初始化完成', 'success');
+
+                return {
+                    isRecording,
+                    intermediateText,
+                    finalText,
+                    detectedCommands,
+                    executingCommands,
+                    recordingStatus,
+                    logs,
+                    completedCount,
+                    toggleRecording,
+                    simulateVoice,
+                    reset,
+                    clearLog
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

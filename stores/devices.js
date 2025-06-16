@@ -167,56 +167,57 @@ export const rooms = [
 
 // 场景数据
 export const initialScenes = [
-  { 
-    id: 'morning', 
-    name: '早晨模式', 
+  {
+    id: 'morning',
+    name: '早晨模式',
     color: 'amber',
     gradient: 'linear-gradient(135deg, #ff9500, #ff2d55)',
     active: false,
     affectedDevices: [
       { id: 1, active: true },  // 客厅灯
-      { id: 2, active: true },  // 卧室灯
-      { id: 3, active: true, temperature: 26 },  // 空调
-      { id: 5, active: true, speed: 2 }   // 风扇
+      { id: 2, active: true },  // 卧室主灯
+      { id: 4, active: true, temperature: 26 },  // 空调
+      { id: 7, active: true, volume: 40 }   // 音响
     ]
   },
-  { 
-    id: 'sleep', 
-    name: '睡眠模式', 
+  {
+    id: 'sleep',
+    name: '睡眠模式',
     color: 'blue',
     gradient: 'linear-gradient(135deg, #0a84ff, #5e5ce6)',
     active: false,
     affectedDevices: [
       { id: 1, active: false },  // 客厅灯
-      { id: 2, active: false },  // 卧室灯
-      { id: 3, active: true, temperature: 24, mode: '睡眠' },  // 空调
-      { id: 4, active: false },  // 电视
-      { id: 5, active: true, speed: 1 }   // 风扇
+      { id: 2, active: false },  // 卧室主灯
+      { id: 3, active: true },   // 卧室氛围灯
+      { id: 4, active: false },  // 空调
+      { id: 5, active: false },  // 电视
+      { id: 7, active: false }   // 音响
     ]
   },
-  { 
-    id: 'movie', 
-    name: '影院模式', 
+  {
+    id: 'movie',
+    name: '影院模式',
     color: 'purple',
     gradient: 'linear-gradient(135deg, #bf5af2, #ff375f)',
     active: false,
     affectedDevices: [
       { id: 1, active: true, brightness: 30 },  // 客厅灯
-      { id: 4, active: true },  // 电视
-      { id: 6, active: true, volume: 70 }   // 音响
+      { id: 5, active: true },  // 电视
+      { id: 7, active: true, volume: 70 }   // 音响
     ]
   },
-  { 
-    id: 'guest', 
-    name: '会客模式', 
+  {
+    id: 'guest',
+    name: '会客模式',
     color: 'green',
     gradient: 'linear-gradient(135deg, #30d158, #64d2ff)',
     active: false,
     affectedDevices: [
       { id: 1, active: true, brightness: 80 },  // 客厅灯
-      { id: 3, active: true, temperature: 25, mode: '自动' },  // 空调
-      { id: 4, active: false },  // 电视
-      { id: 6, active: true, volume: 30 }   // 音响
+      { id: 4, active: true, temperature: 25, mode: '自动' },  // 空调
+      { id: 5, active: false },  // 电视
+      { id: 7, active: true, volume: 30 }   // 音响
     ]
   }
 ]
@@ -443,8 +444,7 @@ export function createDeviceStore() {
     loading.value = true
 
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log(`[场景控制] 正在激活场景: ${id}`)
 
       // 重置所有场景的激活状态
       scenes.value.forEach(scene => {
@@ -454,21 +454,84 @@ export function createDeviceStore() {
       const activeScene = scenes.value.find(scene => scene.active)
 
       if (activeScene) {
-        // 应用场景设置到设备
-        const deviceUpdates = activeScene.affectedDevices.map(affectedDevice => {
+        console.log(`[场景控制] 场景 ${activeScene.name} 已激活，开始控制设备`)
+
+        // 执行场景中的设备控制
+        for (const affectedDevice of activeScene.affectedDevices) {
           const device = getDevice(affectedDevice.id)
           if (device) {
-            return {
-              ...device,
-              ...affectedDevice
-            }
-          }
-          return null
-        }).filter(Boolean)
+            console.log(`[场景控制] 控制设备: ${device.name} -> ${affectedDevice.active ? '开启' : '关闭'}`)
 
-        // 更新设备状态
-        await updateDevices(deviceUpdates)
+            // 根据设备名称调用相应的控制函数
+            let success = false
+
+            if (device.name === '客厅灯') {
+              if (device.active !== affectedDevice.active) {
+                success = await controlLivingRoomLight('toggle', true)
+              } else {
+                success = true // 状态已经正确，不需要操作
+              }
+            } else if (device.name === '卧室主灯') {
+              if (device.active !== affectedDevice.active) {
+                success = await controlBedroomLight('toggle', true)
+              } else {
+                success = true
+              }
+            } else if (device.name === '卧室氛围灯') {
+              if (device.active !== affectedDevice.active) {
+                success = await controlBedroomLight('toggleAmbient', true)
+              } else {
+                success = true
+              }
+            } else if (device.name === '空调') {
+              if (device.active !== affectedDevice.active) {
+                success = await controlAC('toggle', true)
+              } else {
+                success = true
+              }
+            } else if (device.name === '音响') {
+              if (device.active !== affectedDevice.active) {
+                success = await controlSpeaker('toggle', true)
+              } else {
+                success = true
+              }
+            } else {
+              // 对于其他设备，只更新UI状态
+              console.log(`[场景控制] 设备 ${device.name} 暂不支持蓝牙控制，仅更新UI状态`)
+              success = true
+            }
+
+            if (success) {
+              // 更新设备状态
+              const index = devices.value.findIndex(d => d.id === device.id)
+              if (index !== -1) {
+                const updatedDevice = {
+                  ...devices.value[index],
+                  ...affectedDevice,
+                  lastUpdated: new Date()
+                }
+                devices.value.splice(index, 1, updatedDevice)
+
+                // 同步设备控制状态
+                syncDeviceState(device.name, affectedDevice.active)
+
+                console.log(`[场景控制] 设备状态更新成功: ${device.name} -> ${affectedDevice.active ? '开启' : '关闭'}`)
+              }
+            } else {
+              console.error(`[场景控制] 设备控制失败: ${device.name}`)
+            }
+
+            // 设备间控制延迟，避免指令冲突
+            await new Promise(resolve => setTimeout(resolve, 200))
+          }
+        }
+
+        console.log(`[场景控制] 场景 ${activeScene.name} 执行完成`)
+      } else {
+        console.log(`[场景控制] 场景 ${id} 已关闭`)
       }
+    } catch (error) {
+      console.error('[场景控制] 激活场景时发生错误:', error)
     } finally {
       loading.value = false
     }

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音识别确认机制演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .demo-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .voice-interface {
+            position: relative;
+            height: 400px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .record-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #00bfa5;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 191, 165, 0.3);
+        }
+        .record-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0, 191, 165, 0.4);
+        }
+        .record-button.recording {
+            background: #ff5722;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .intermediate-result {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 191, 165, 0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px dashed #00bfa5;
+            max-width: 80%;
+            text-align: center;
+        }
+        .intermediate-label {
+            font-size: 12px;
+            color: #00bfa5;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .intermediate-text {
+            font-size: 16px;
+            color: #333;
+        }
+        .final-result {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 80%;
+            text-align: center;
+        }
+        .final-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .final-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: 500;
+        }
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .dialog-content {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            max-width: 400px;
+            width: 90%;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .dialog-header {
+            background: linear-gradient(135deg, #00bfa5, #00a693);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .dialog-body {
+            padding: 25px;
+            text-align: center;
+        }
+        .dialog-command {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00bfa5;
+            margin: 15px 0;
+        }
+        .dialog-confidence {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 20px;
+        }
+        .dialog-actions {
+            display: flex;
+            border-top: 1px solid #eee;
+        }
+        .dialog-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            background: white;
+        }
+        .cancel-btn {
+            color: #666;
+            border-right: 1px solid #eee;
+        }
+        .confirm-btn {
+            color: #00bfa5;
+            font-weight: bold;
+        }
+        .dialog-btn:hover {
+            background: #f5f5f5;
+        }
+        .status-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .demo-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .demo-btn {
+            padding: 8px 16px;
+            border: 1px solid #00bfa5;
+            background: white;
+            color: #00bfa5;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .demo-btn:hover {
+            background: #00bfa5;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 class="title">🎤 语音识别确认机制演示</h1>
+        
+        <div id="app">
+            <div class="voice-interface">
+                <!-- 录音按钮 -->
+                <button 
+                    class="record-button" 
+                    :class="{ recording: isRecording }"
+                    @click="toggleRecording"
+                >
+                    {{ isRecording ? '停止录音' : '开始录音' }}
+                </button>
+                
+                <!-- 中间识别结果 -->
+                <div v-if="intermediateText && isRecording" class="intermediate-result">
+                    <div class="intermediate-label">实时识别:</div>
+                    <div class="intermediate-text">{{ intermediateText }}</div>
+                </div>
+                
+                <!-- 最终识别结果 -->
+                <div v-if="finalText" class="final-result">
+                    <div class="final-label">识别完成:</div>
+                    <div class="final-text">{{ finalText }}</div>
+                </div>
+            </div>
+            
+            <!-- 确认对话框 -->
+            <div v-if="showConfirmDialog" class="confirm-dialog" @click="cancelCommand">
+                <div class="dialog-content" @click.stop>
+                    <div class="dialog-header">
+                        🎤 确认执行指令
+                    </div>
+                    <div class="dialog-body">
+                        <div>识别到指令:</div>
+                        <div class="dialog-command">{{ matchedCommand }}</div>
+                        <div class="dialog-confidence">匹配度: {{ confidence }}%</div>
+                    </div>
+                    <div class="dialog-actions">
+                        <button class="dialog-btn cancel-btn" @click="cancelCommand">取消</button>
+                        <button class="dialog-btn confirm-btn" @click="confirmCommand">确认执行</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 状态面板 -->
+            <div class="status-panel">
+                <div class="status-item">
+                    <span>录音状态:</span>
+                    <span>{{ recordingStatus }}</span>
+                </div>
+                <div class="status-item">
+                    <span>处理状态:</span>
+                    <span>{{ processingStatus }}</span>
+                </div>
+                <div class="status-item">
+                    <span>最后执行:</span>
+                    <span>{{ lastExecuted || '无' }}</span>
+                </div>
+            </div>
+            
+            <!-- 演示控制 -->
+            <div class="demo-controls">
+                <button class="demo-btn" @click="simulateVoice('打开客厅灯')">模拟: 打开客厅灯</button>
+                <button class="demo-btn" @click="simulateVoice('关闭空调')">模拟: 关闭空调</button>
+                <button class="demo-btn" @click="simulateVoice('播放音乐')">模拟: 播放音乐</button>
+                <button class="demo-btn" @click="reset">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const isRecording = ref(false);
+                const intermediateText = ref('');
+                const finalText = ref('');
+                const showConfirmDialog = ref(false);
+                const matchedCommand = ref('');
+                const confidence = ref(0);
+                const recordingStatus = ref('空闲');
+                const processingStatus = ref('等待中');
+                const lastExecuted = ref('');
+
+                const toggleRecording = () => {
+                    if (isRecording.value) {
+                        stopRecording();
+                    } else {
+                        startRecording();
+                    }
+                };
+
+                const startRecording = () => {
+                    isRecording.value = true;
+                    recordingStatus.value = '录音中';
+                    intermediateText.value = '';
+                    finalText.value = '';
+                    
+                    // 模拟实时识别
+                    simulateRealTimeRecognition();
+                };
+
+                const stopRecording = () => {
+                    isRecording.value = false;
+                    recordingStatus.value = '处理中';
+                    
+                    // 模拟最终结果
+                    setTimeout(() => {
+                        const finalResult = intermediateText.value || '打开客厅灯';
+                        finalText.value = finalResult;
+                        intermediateText.value = '';
+                        recordingStatus.value = '完成';
+                        showConfirmationDialog(finalResult);
+                    }, 1000);
+                };
+
+                const simulateRealTimeRecognition = () => {
+                    const phrases = ['打', '打开', '打开客', '打开客厅', '打开客厅灯'];
+                    let index = 0;
+                    
+                    const interval = setInterval(() => {
+                        if (!isRecording.value || index >= phrases.length) {
+                            clearInterval(interval);
+                            return;
+                        }
+                        intermediateText.value = phrases[index];
+                        index++;
+                    }, 500);
+                };
+
+                const showConfirmationDialog = (text) => {
+                    // 模拟指令匹配
+                    const commands = {
+                        '打开客厅灯': { command: '打开客厅的灯', confidence: 95 },
+                        '关闭空调': { command: '关闭空调', confidence: 92 },
+                        '播放音乐': { command: '打开音响，放一首歌', confidence: 88 }
+                    };
+                    
+                    const match = commands[text] || { command: text, confidence: 75 };
+                    matchedCommand.value = match.command;
+                    confidence.value = match.confidence;
+                    showConfirmDialog.value = true;
+                    processingStatus.value = '等待确认';
+                };
+
+                const confirmCommand = () => {
+                    showConfirmDialog.value = false;
+                    processingStatus.value = '执行中';
+                    
+                    setTimeout(() => {
+                        lastExecuted.value = matchedCommand.value;
+                        processingStatus.value = '执行成功';
+                        
+                        setTimeout(() => {
+                            processingStatus.value = '等待中';
+                        }, 2000);
+                    }, 1000);
+                };
+
+                const cancelCommand = () => {
+                    showConfirmDialog.value = false;
+                    processingStatus.value = '已取消';
+                    
+                    setTimeout(() => {
+                        processingStatus.value = '等待中';
+                    }, 1500);
+                };
+
+                const simulateVoice = (text) => {
+                    finalText.value = text;
+                    showConfirmationDialog(text);
+                };
+
+                const reset = () => {
+                    isRecording.value = false;
+                    intermediateText.value = '';
+                    finalText.value = '';
+                    showConfirmDialog.value = false;
+                    matchedCommand.value = '';
+                    confidence.value = 0;
+                    recordingStatus.value = '空闲';
+                    processingStatus.value = '等待中';
+                    lastExecuted.value = '';
+                };
+
+                return {
+                    isRecording,
+                    intermediateText,
+                    finalText,
+                    showConfirmDialog,
+                    matchedCommand,
+                    confidence,
+                    recordingStatus,
+                    processingStatus,
+                    lastExecuted,
+                    toggleRecording,
+                    confirmCommand,
+                    cancelCommand,
+                    simulateVoice,
+                    reset
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
