@@ -108,6 +108,12 @@ import { XunfeiSpeechRecognizerH5 } from '@/utils/xunfeiSpeechH5.js'
 import BluetoothStatus from '@/components/BluetoothStatus.vue'
 import { matchSingleCommand } from '@/utils/voiceCommandMatcher.js'
 import { bluetoothControl } from '@/utils/bluetooth.js'
+import {
+  controlLivingRoomLight,
+  controlBedroomLight,
+  controlAC,
+  controlSpeaker
+} from '@/utils/deviceControl.js'
 
 const isInputMode = ref(false)
 const waves = Array(3).fill(0)
@@ -126,6 +132,10 @@ const showDebugInfo = ref(true) // 显示调试信息
 const matchResult = ref(null)
 const isProcessingCommand = ref(false)
 const commandExecuted = ref(false)
+
+// 防重复执行
+const lastProcessedText = ref('')
+const processingTimeout = ref(null)
 
 let audioContext = null
 let progressTimer = null
@@ -155,14 +165,33 @@ onMounted(() => {
     recognizedText.value = text
     console.log('[语音识别] 识别结果:', text)
 
+    // 防重复执行：检查是否与上次处理的文本相同
+    if (text.trim() === lastProcessedText.value.trim()) {
+      console.log('[语音控制] 重复的识别结果，跳过处理:', text)
+      return
+    }
+
+    // 防重复执行：清除之前的处理超时
+    if (processingTimeout.value) {
+      clearTimeout(processingTimeout.value)
+      processingTimeout.value = null
+    }
+
     // 清空之前的匹配结果
     matchResult.value = null
     commandExecuted.value = false
 
     if (!text.trim()) return
 
+    // 防重复执行：如果正在处理指令，跳过
+    if (isProcessingCommand.value) {
+      console.log('[语音控制] 正在处理指令中，跳过新的识别结果:', text)
+      return
+    }
+
     try {
       isProcessingCommand.value = true
+      lastProcessedText.value = text.trim()
       console.log('[语音控制] 开始匹配语音指令...')
 
       // 使用智能指令匹配
@@ -206,6 +235,13 @@ onMounted(() => {
       })
     } finally {
       isProcessingCommand.value = false
+
+      // 设置超时清除，防止长时间阻塞
+      processingTimeout.value = setTimeout(() => {
+        lastProcessedText.value = ''
+        isProcessingCommand.value = false
+        processingTimeout.value = null
+      }, 3000)
     }
   }
 
@@ -268,14 +304,60 @@ async function executeDeviceControl(signal, command) {
   console.log(`[语音控制] 执行设备控制: ${signal} - ${command}`)
 
   try {
-    // 发送蓝牙指令
-    const success = await bluetoothControl.sendCommand(signal)
+    let success = false
+
+    // 根据信号调用相应的设备控制函数，标记为语音控制
+    switch (signal) {
+      case '1': // 打开客厅的灯
+        success = await controlLivingRoomLight('toggle', true)
+        break
+      case '2': // 加大客厅的灯光
+        success = await controlLivingRoomLight('brightnessUp', true)
+        break
+      case '3': // 降低客厅的灯光
+        success = await controlLivingRoomLight('brightnessDown', true)
+        break
+      case '4': // 转换客厅的灯光颜色
+        success = await controlLivingRoomLight('changeColor', true)
+        break
+      case '5': // 关闭客厅的灯光
+        success = await controlLivingRoomLight('toggle', true)
+        break
+      case '6': // 打开卧室的灯
+        success = await controlBedroomLight('toggle', true)
+        break
+      case '7': // 打开卧室的氛围灯
+        success = await controlBedroomLight('toggleAmbient', true)
+        break
+      case '8': // 关闭卧室的灯
+        success = await controlBedroomLight('toggle', true)
+        break
+      case 'd': // 关闭卧室的氛围灯
+        success = await controlBedroomLight('toggleAmbient', true)
+        break
+      case '9': // 打开空调
+        success = await controlAC('toggle', true)
+        break
+      case 'a': // 关闭空调
+        success = await controlAC('toggle', true)
+        break
+      case 'b': // 打开音响，放一首歌
+        success = await controlSpeaker('toggle', true)
+        break
+      case 'c': // 关闭音响
+        success = await controlSpeaker('toggle', true)
+        break
+      default:
+        // 对于未映射的信号，使用原来的蓝牙控制方式
+        console.log(`[语音控制] 使用蓝牙直接控制: ${signal}`)
+        success = await bluetoothControl.sendCommand(signal)
+    }
 
     if (success) {
-      console.log(`[语音控制] 指令发送成功: ${signal}`)
+      console.log(`[语音控制] 指令执行成功: ${signal} - ${command}`)
     } else {
-      console.warn(`[语音控制] 指令发送失败: ${signal}`)
-      throw new Error('蓝牙指令发送失败')
+      console.warn(`[语音控制] 指令执行失败: ${signal} - ${command}`)
+      throw new Error('设备控制失败')
     }
   } catch (error) {
     console.error('[语音控制] 设备控制失败:', error)
@@ -292,6 +374,13 @@ async function handleClick() {
       matchResult.value = null
       commandExecuted.value = false
       isProcessingCommand.value = false
+      lastProcessedText.value = ''
+
+      // 清除处理超时
+      if (processingTimeout.value) {
+        clearTimeout(processingTimeout.value)
+        processingTimeout.value = null
+      }
 
       // 开始录音
       console.log('开始语音识别...')
@@ -506,8 +595,16 @@ function formatTime(seconds) {
 
 // 组件销毁时清理
 onUnmounted(() => {
-  if (speechRecognizer.ws) {
-    speechRecognizer.ws.close()
+  console.log('[组件销毁] 开始清理语音识别组件')
+
+  // 清理语音识别器
+  if (speechRecognizer) {
+    if (speechRecognizer.ws) {
+      speechRecognizer.ws.close()
+    }
+    if (speechRecognizer.cleanup) {
+      speechRecognizer.cleanup()
+    }
   }
 
   // 清理音频播放器
@@ -518,6 +615,14 @@ onUnmounted(() => {
 
   // 清理定时器
   stopProgressTimer()
+
+  // 清理处理超时
+  if (processingTimeout.value) {
+    clearTimeout(processingTimeout.value)
+    processingTimeout.value = null
+  }
+
+  console.log('[组件销毁] 语音识别组件清理完成')
 })
 </script>
 

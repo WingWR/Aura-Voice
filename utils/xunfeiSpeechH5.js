@@ -79,7 +79,7 @@ export class XunfeiSpeechRecognizerH5 {
   handleMessage(data) {
     try {
       const res = JSON.parse(data)
-      
+
       if (res.code != 0) {
         console.log(`error code ${res.code}, reason ${res.message}`)
         this.handleError(`识别错误: ${res.message}`)
@@ -87,23 +87,24 @@ export class XunfeiSpeechRecognizerH5 {
       }
 
       let str = ""
-      if (res.data.status == 2) {
+      const isFinalResult = res.data.status == 2
+
+      if (isFinalResult) {
         str += "最终识别结果"
         this.currentSid = res.sid
-        this.ws.close()
       } else {
         str += "中间识别结果"
       }
 
       this.iatResult[res.data.result.sn] = res.data.result
-      
+
       if (res.data.result.pgs == 'rpl') {
         res.data.result.rg.forEach(i => {
           this.iatResult[i] = null
         })
         str += "【动态修正】"
       }
-      
+
       str += "："
       let fullText = ""
       this.iatResult.forEach(i => {
@@ -116,12 +117,20 @@ export class XunfeiSpeechRecognizerH5 {
           })
         }
       })
-      
+
       console.log(str)
-      
-      if (fullText.trim() && this.onResult) {
+
+      // 只有最终结果才触发回调，避免重复执行
+      if (isFinalResult && fullText.trim() && this.onResult) {
         this.currentText = fullText
         this.onResult(fullText)
+
+        // 延迟关闭WebSocket，确保回调执行完成
+        setTimeout(() => {
+          if (this.ws) {
+            this.ws.close()
+          }
+        }, 100)
       }
 
     } catch (error) {
@@ -268,32 +277,42 @@ export class XunfeiSpeechRecognizerH5 {
   // 停止录音
   async stop() {
     try {
+      console.log(`[停止录音] 当前状态: ${this.recordingStatus}`)
+
       if (this.recordingStatus === 'recording') {
         console.log('录音结束，发送尾帧')
         this.updateStatus('processing')
-        
+
+        // 发送尾帧（在断开音频处理之前）
+        this.frameStatus = 2
+        this.send(null)
+
         // 断开音频处理
         if (this.processor) {
           this.processor.disconnect()
           this.processor = null
+          console.log('[停止录音] 音频处理器已断开')
         }
         if (this.source) {
           this.source.disconnect()
           this.source = null
+          console.log('[停止录音] 音频源已断开')
         }
-        if (this.audioContext) {
+        if (this.audioContext && this.audioContext.state !== 'closed') {
           this.audioContext.close()
           this.audioContext = null
+          console.log('[停止录音] AudioContext已关闭')
         }
         if (this.stream) {
           this.stream.getTracks().forEach(track => track.stop())
           this.stream = null
+          console.log('[停止录音] 媒体流已停止')
         }
 
-        // 发送尾帧
-        this.frameStatus = 2
-        this.send(null)
+        // 不立即关闭WebSocket，等待最终结果
+        console.log('[停止录音] 等待识别结果...')
       } else {
+        console.log('[停止录音] 非录音状态，直接清理')
         this.cleanup()
       }
     } catch (error) {
@@ -321,26 +340,41 @@ export class XunfeiSpeechRecognizerH5 {
 
   // 清理资源
   cleanup() {
+    console.log('[清理] 开始清理语音识别资源')
+
     if (this.processor) {
       this.processor.disconnect()
       this.processor = null
+      console.log('[清理] 音频处理器已断开')
     }
     if (this.source) {
       this.source.disconnect()
       this.source = null
+      console.log('[清理] 音频源已断开')
     }
-    if (this.audioContext) {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close()
       this.audioContext = null
+      console.log('[清理] AudioContext已关闭')
     }
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop())
       this.stream = null
+      console.log('[清理] 媒体流已停止')
     }
-    if (this.ws) {
+    if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
       this.ws.close()
       this.ws = null
+      console.log('[清理] WebSocket连接已关闭')
     }
+
+    // 重置状态
+    this.currentText = ''
+    this.iatResult = []
+    this.frameStatus = 0
+    this.currentSid = ''
+
     this.updateStatus('idle')
+    console.log('[清理] 资源清理完成')
   }
 }

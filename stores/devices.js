@@ -5,31 +5,32 @@ import {
   controlBedroomLight,
   controlAC,
   controlSpeaker,
-  deviceStates
+  deviceStates,
+  syncDeviceState
 } from '../utils/deviceControl.js'
 
 // 设备数据
 const initialDevices = [
-  { 
-    id: 1, 
-    name: '客厅灯', 
+  {
+    id: 1,
+    name: '客厅灯',
     type: 'light',
-    room: '客厅', 
+    room: '客厅',
     roomId: 'living',
-    active: true, 
+    active: false,
     color: 'amber',
     brightnessLevel: 3,
     colorHex: '#fbbf24',
     online: true,
     lastUpdated: new Date()
   },
-  { 
-    id: 2, 
-    name: '卧室主灯', 
+  {
+    id: 2,
+    name: '卧室主灯',
     type: 'light',
-    room: '卧室', 
+    room: '卧室',
     roomId: 'bedroom',
-    active: false, 
+    active: false,
     color: 'amber',
     brightnessLevel: 2,
     colorHex: '#fbbf24',
@@ -46,16 +47,16 @@ const initialDevices = [
     color: 'purple',
     brightnessLevel: 1,
     colorHex: '#a78bfa',
-    online: false,
+    online: true,
     lastUpdated: new Date()
   },
-  { 
-    id: 4, 
-    name: '空调', 
+  {
+    id: 4,
+    name: '空调',
     type: 'ac',
-    room: '客厅', 
+    room: '客厅',
     roomId: 'living',
-    active: true, 
+    active: false,
     color: 'blue',
     temperature: 25,
     mode: '制冷',
@@ -72,7 +73,7 @@ const initialDevices = [
     color: 'purple',
     volume: 50,
     source: 'HDMI',
-    online: true,
+    online: false,
     lastUpdated: new Date()
   },
   { 
@@ -85,7 +86,7 @@ const initialDevices = [
     color: 'cyan',
     speed: 2,
     swing: '关闭',
-    online: true,
+    online: false,
     lastUpdated: new Date()
   },
   { 
@@ -98,55 +99,55 @@ const initialDevices = [
     color: 'pink',
     volume: 60,
     eq: '标准',
-    online: false,
+    online: true,
     lastUpdated: new Date()
   },
-  { 
-    id: 8, 
-    name: '冰箱', 
+  {
+    id: 8,
+    name: '冰箱',
     type: 'fridge',
-    room: '厨房', 
+    room: '厨房',
     roomId: 'kitchen',
-    active: true, 
+    active: false,
     color: 'green',
     temperature: 4,
     ecoMode: true,
-    online: true,
+    online: false,
     lastUpdated: new Date()
   },
-  { 
-    id: 9, 
-    name: '洗衣机', 
+  {
+    id: 9,
+    name: '洗衣机',
     type: 'washer',
-    room: '浴室', 
+    room: '浴室',
     roomId: 'bathroom',
-    active: false, 
+    active: false,
     color: 'indigo',
     mode: '标准',
     duration: 60,
-    online: true,
+    online: false,
     lastUpdated: new Date()
   },
-  { 
-    id: 10, 
-    name: '扫地机器人', 
+  {
+    id: 10,
+    name: '扫地机器人',
     type: 'robot',
-    room: '客厅', 
+    room: '客厅',
     roomId: 'living',
-    active: false, 
+    active: false,
     color: 'blue',
     battery: 80,
     status: '待机',
-    online: true,
+    online: false,
     lastUpdated: new Date()
   },
-  { 
-    id: 11, 
-    name: '加湿器', 
+  {
+    id: 11,
+    name: '加湿器',
     type: 'humidifier',
-    room: '卧室', 
+    room: '卧室',
     roomId: 'bedroom',
-    active: true, 
+    active: false,
     color: 'cyan',
     humidity: 45,
     online: false,
@@ -314,12 +315,25 @@ export function createDeviceStore() {
       if (success) {
         const index = devices.value.findIndex(device => device.id === id)
         if (index !== -1) {
-          devices.value[index] = {
+          const newActiveState = !devices.value[index].active
+
+          // 使用Vue的响应式更新方式，确保界面立即更新
+          const updatedDevice = {
             ...devices.value[index],
-            active: !devices.value[index].active,
+            active: newActiveState,
             lastUpdated: new Date()
           }
-          console.log(`[设备控制] 设备状态更新成功: ${device.name} -> ${!device.active ? '开启' : '关闭'}`)
+
+          // 直接替换数组中的元素，触发响应式更新
+          devices.value.splice(index, 1, updatedDevice)
+
+          // 同步设备控制状态
+          syncDeviceState(device.name, newActiveState)
+
+          console.log(`[设备控制] 设备状态更新成功: ${device.name} -> ${newActiveState ? '开启' : '关闭'}`)
+
+          // 强制触发响应式更新（如果需要）
+          console.log(`[设备控制] 当前设备状态: active=${updatedDevice.active}`)
         }
       } else {
         console.error(`[设备控制] 设备控制失败: ${device.name}`)
@@ -365,11 +379,16 @@ export function createDeviceStore() {
       if (success) {
         const index = devices.value.findIndex(device => device.id === id)
         if (index !== -1) {
-          devices.value[index] = {
+          // 使用Vue的响应式更新方式
+          const updatedDevice = {
             ...devices.value[index],
             [property]: value,
             lastUpdated: new Date()
           }
+
+          // 直接替换数组中的元素，触发响应式更新
+          devices.value.splice(index, 1, updatedDevice)
+
           console.log(`[设备控制] 设备属性更新成功: ${device.name} - ${property}: ${value}`)
         }
       } else {
@@ -422,18 +441,18 @@ export function createDeviceStore() {
   // 激活场景
   const activateScene = async (id) => {
     loading.value = true
-    
+
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // 重置所有场景的激活状态
       scenes.value.forEach(scene => {
         scene.active = scene.id === id ? !scene.active : false
       })
-      
+
       const activeScene = scenes.value.find(scene => scene.active)
-      
+
       if (activeScene) {
         // 应用场景设置到设备
         const deviceUpdates = activeScene.affectedDevices.map(affectedDevice => {
@@ -446,13 +465,42 @@ export function createDeviceStore() {
           }
           return null
         }).filter(Boolean)
-        
+
         // 更新设备状态
         await updateDevices(deviceUpdates)
       }
     } finally {
       loading.value = false
     }
+  }
+
+  // 语音控制专用的设备状态更新方法
+  const updateDeviceStateFromVoice = (deviceName, newState) => {
+    console.log(`[语音控制] 更新设备状态: ${deviceName} -> ${JSON.stringify(newState)}`)
+
+    const device = devices.value.find(d => d.name === deviceName)
+    if (!device) {
+      console.warn(`[语音控制] 未找到设备: ${deviceName}`)
+      return false
+    }
+
+    const index = devices.value.findIndex(d => d.id === device.id)
+    if (index !== -1) {
+      // 使用Vue的响应式更新方式
+      const updatedDevice = {
+        ...devices.value[index],
+        ...newState,
+        lastUpdated: new Date()
+      }
+
+      // 直接替换数组中的元素，触发响应式更新
+      devices.value.splice(index, 1, updatedDevice)
+
+      console.log(`[语音控制] 设备状态更新成功: ${deviceName}`)
+      return true
+    }
+
+    return false
   }
   
   // 返回存储和方法
@@ -470,7 +518,8 @@ export function createDeviceStore() {
     updateDeviceProperty,
     updateDevices,
     filterDevices,
-    activateScene
+    activateScene,
+    updateDeviceStateFromVoice
   }
 }
 

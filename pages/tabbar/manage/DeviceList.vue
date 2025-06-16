@@ -9,7 +9,7 @@
 
     <!-- 设备网格 -->
     <div class="device-grid">
-      <div v-for="device in filteredDevices" :key="device.id" class="device-card-container">
+      <div v-for="device in filteredDevices" :key="`${device.id}-${device.active}-${device.lastUpdated}`" class="device-card-container">
         <!-- 主设备卡片 -->
         <div class="device-card" :class="[
           `device-card--${device.type}`,
@@ -225,7 +225,7 @@
  * 支持设备状态查看、一键开关、详细控制等功能
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import {
   DevicesIcon,
   WifiIcon,
@@ -409,6 +409,11 @@ const handleToggleDevice = async (deviceId) => {
 
   try {
     await toggleDevice(deviceId)
+
+    // 强制触发下一次DOM更新，确保界面立即响应
+    await nextTick()
+
+    console.log(`[界面更新] 设备 ${deviceId} 状态切换完成，界面已更新`)
   } catch (error) {
     console.error('设备开关切换失败:', error)
   }
@@ -420,6 +425,11 @@ const handleUpdateProperty = async (deviceId, property, value) => {
 
   try {
     await updateDeviceProperty(deviceId, property, value)
+
+    // 强制触发下一次DOM更新，确保界面立即响应
+    await nextTick()
+
+    console.log(`[界面更新] 设备 ${deviceId} 属性 ${property} 更新完成，界面已更新`)
   } catch (error) {
     console.error('设备属性更新失败:', error)
   }

@@ -1,19 +1,19 @@
 {
-  "hash": "c5e6805c",
+  "hash": "8c108fc2",
   "configHash": "0e74fbd6",
-  "lockfileHash": "2e4bff9b",
-  "browserHash": "0b7e44a9",
+  "lockfileHash": "ffadcaa6",
+  "browserHash": "24ed380b",
   "optimized": {
     "crypto-js": {
       "src": "../../../../../node_modules/crypto-js/index.js",
       "file": "crypto-js.js",
-      "fileHash": "522e3f17",
+      "fileHash": "98d8acc5",
       "needsInterop": true
     },
     "lucide-vue-next": {
       "src": "../../../../../node_modules/lucide-vue-next/dist/esm/lucide-vue-next.js",
       "file": "lucide-vue-next.js",
-      "fileHash": "5fac897a",
+      "fileHash": "558232e7",
       "needsInterop": false
     }
   },

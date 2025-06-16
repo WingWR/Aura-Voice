@@ -51,6 +51,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { XunfeiSpeechRecognizerH5 } from '../utils/xunfeiSpeechH5.js'
 import { bluetoothControl } from '../utils/bluetooth.js'
 import { matchSingleCommand, testVoiceCommand } from '../utils/voiceCommandMatcher.js'
+import {
+  controlLivingRoomLight,
+  controlBedroomLight,
+  controlAC,
+  controlSpeaker
+} from '../utils/deviceControl.js'
 
 // 响应式状态
 const isListening = ref(false)
@@ -134,16 +140,62 @@ const handleRecognitionResult = async (text) => {
 // 执行设备控制
 const executeDeviceControl = async (signal, command) => {
   console.log(`[语音控制] 执行设备控制: ${signal} - ${command}`)
-  
+
   try {
-    // 发送蓝牙指令
-    const success = await bluetoothControl.sendCommand(signal)
-    
+    let success = false
+
+    // 根据信号调用相应的设备控制函数，标记为语音控制
+    switch (signal) {
+      case '1': // 打开客厅的灯
+        success = await controlLivingRoomLight('toggle', true)
+        break
+      case '2': // 加大客厅的灯光
+        success = await controlLivingRoomLight('brightnessUp', true)
+        break
+      case '3': // 降低客厅的灯光
+        success = await controlLivingRoomLight('brightnessDown', true)
+        break
+      case '4': // 转换客厅的灯光颜色
+        success = await controlLivingRoomLight('changeColor', true)
+        break
+      case '5': // 关闭客厅的灯光
+        success = await controlLivingRoomLight('toggle', true)
+        break
+      case '6': // 打开卧室的灯
+        success = await controlBedroomLight('toggle', true)
+        break
+      case '7': // 打开卧室的氛围灯
+        success = await controlBedroomLight('toggleAmbient', true)
+        break
+      case '8': // 关闭卧室的灯
+        success = await controlBedroomLight('toggle', true)
+        break
+      case 'd': // 关闭卧室的氛围灯
+        success = await controlBedroomLight('toggleAmbient', true)
+        break
+      case '9': // 打开空调
+        success = await controlAC('toggle', true)
+        break
+      case 'a': // 关闭空调
+        success = await controlAC('toggle', true)
+        break
+      case 'b': // 打开音响，放一首歌
+        success = await controlSpeaker('toggle', true)
+        break
+      case 'c': // 关闭音响
+        success = await controlSpeaker('toggle', true)
+        break
+      default:
+        // 对于未映射的信号，使用原来的蓝牙控制方式
+        console.log(`[语音控制] 使用蓝牙直接控制: ${signal}`)
+        success = await bluetoothControl.sendCommand(signal)
+    }
+
     if (success) {
-      console.log(`[语音控制] 指令发送成功: ${signal}`)
+      console.log(`[语音控制] 指令执行成功: ${signal} - ${command}`)
     } else {
-      console.warn(`[语音控制] 指令发送失败: ${signal}`)
-      throw new Error('蓝牙指令发送失败')
+      console.warn(`[语音控制] 指令执行失败: ${signal} - ${command}`)
+      throw new Error('设备控制失败')
     }
   } catch (error) {
     console.error('[语音控制] 设备控制失败:', error)

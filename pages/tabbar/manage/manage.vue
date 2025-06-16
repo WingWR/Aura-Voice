@@ -59,6 +59,7 @@ import DeviceList from './DeviceList.vue'
 
 // 导入工具函数
 import { provideDeviceStore } from '../../../stores/devices.js'
+import { setDeviceStoreRef } from '../../../utils/deviceControl.js'
 
 
 // 响应式状态
@@ -97,6 +98,10 @@ onMounted(async () => {
     setTimeout(() => {
       showNoiseOverlay.value = true
     }, 100)
+
+    // 设置设备存储引用，用于语音控制同步状态
+    setDeviceStoreRef(deviceStore)
+    console.log('[设备管理] 设备存储引用已设置，语音控制将同步到界面')
 
     // 初始化设备数据
     await deviceStore.initialize?.()
